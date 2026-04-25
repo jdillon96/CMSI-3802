@@ -13,28 +13,96 @@ _Music in. Software out._
 
 ---
 
+## Team
+
+| Name | GitHub |
+|------|--------|
+| Diego Cuadros | [@diegocuadros1](https://github.com/diegocuadros1) |
+| Jay Dillon | [@jdillon96](https://github.com/jdillon96) |
+| Westley Holmes | [@WesHolmes](https://github.com/WesHolmes) |
+| Jesus Lopez | — |
+
+---
+
 ## The Story
 
-Groovy is a statically-typed, music-themed programming language that compiles to JavaScript. Every construct speaks the language of music: variables are **notes**, functions are **compositions**, loops are **measures** and **vamps**, and conditionals are **cues**. The result is a language that feels like writing a score — structured, expressive, and rhythmically satisfying. Groovy was built as a semester-long compiler project for CMSI-3802 at LMU, covering lexing, parsing, semantic analysis, optimization, and code generation end-to-end.
+Groovy is an esolang that converts audio input to text output through a MIDI-to-source encoding pipeline. You write programs by placing notes in a DAW — the channel a note lives on determines what kind of character it produces, and the pitch selects the specific character via modulo arithmetic. Export the MIDI, run it through Groovy, and your performance becomes source code that compiles to JavaScript.
+
+The language itself is music-themed throughout. Every keyword comes from music vocabulary: variables are `note`s, constants are `key`s, functions are `compose`d, loops are `measure`s and `vamp`s, conditionals are `cue`s. Writing Groovy text feels like annotating a score. Performing it feels like playing one.
+
+Groovy was built as a semester-long compiler project for CMSI-3802 at LMU, covering lexing, parsing, semantic analysis, optimization, and code generation end-to-end.
+
+---
+
+## Audio Encoding
+
+Every Groovy program can be authored and performed as a MIDI file. The preprocessor reads the notes, figures out what characters they represent, and reconstructs the source text — which then flows into the normal compile pipeline.
+
+### Channel Routing
+
+The channel a note is placed on determines what kind of character it encodes. Pitch selects the specific character within that category via modulo arithmetic.
+
+| Channel | Encodes | Selection |
+|---------|---------|-----------|
+| 1 | Groovy keywords (`note`, `compose`, `cue`, `vamp`, …) | `KEYWORDS[pitch % 28]` |
+| 2 | Letters (a–z, A–Z) | `ALPHABET[pitch % 52]` |
+| 3 | Digits and math operators (`0–9 . + - * / % ^ =`) | `MATH_CHARS[pitch % 18]` |
+| 4 | Punctuation (`{ } ( ) [ ] , ; : < >`) | `SPECIALS[pitch % 11]` |
+| 5 | Explicit whitespace | `pitch % 3` → space / tab / newline |
+| 6 | Comments | Dropped entirely — play whatever you want here |
+| 7–16 | Unicode | `(channel − 7) × 16384 + pitch × 128 + velocity` |
+
+### Implicit Whitespace from Timing
+
+Notes are sorted chronologically before decoding. The gap in time between consecutive notes automatically generates whitespace, which means how fast or slow you play a passage shapes the indentation and structure of the output:
+
+| Gap | Whitespace injected |
+|-----|---------------------|
+| ≥ 0.2 s | space |
+| ≥ 1.0 s | tab |
+| ≥ 2.5 s | newline |
+
+### Full Pipeline
+
+```
+MIDI file → preprocessing → source text → lexer/parser → semantic analysis → optimizer → code gen → JavaScript
+```
+
+---
+
+## Text Representation
+
+Groovy also has a plain-text syntax if you'd rather type than perform. Every construct maps to a music keyword:
+
+- Declare variables with `note x = 5` (mutable) or `key x = 5` (immutable)
+- Define functions with `compose name(params) -> returnType :`
+- Loop with `measure` (range or collection), `vamp` (while), or `encore` (repeat N times)
+- Branch with `cue` / `alt` / `drop` (if / else-if / else)
+- Close every block with `cadence`
+
+The five primitive types are `level` (number), `lyric` (string), `gate` (boolean), `silence` (void), and `noise` (any). Types can be made optional with `ghost`.
 
 ---
 
 ## Features
 
-- **Music-themed syntax** — keywords drawn entirely from musical vocabulary
-- **Strong static typing** — five primitive types: `level`, `lyric`, `gate`, `silence`, `noise`
+- **Dual input modes** — write programs as MIDI files in a DAW or as plain-text `.gvy` source
+- **Music-themed syntax** — every keyword comes from musical vocabulary
+- **Static typing** — five primitive types: `level`, `lyric`, `gate`, `silence`, `noise`
 - **Optional types** — first-class `ghost` types with `??` unwrap-else semantics
 - **Structs** — custom data types via `chord` declarations
 - **Arrays** — typed, subscriptable collections
 - **First-class functions** — typed parameters and return annotations via `compose`
 - **Rich control flow** — `cue`/`alt`/`drop`, `vamp` (while), `measure` (for-range & for-in), `encore` (repeat N times), `cut` (break)
 - **Immutability** — `key` declares constants; function parameters are immutable by default
+- **MIDI comment track** — Channel 6 notes are silently discarded, letting you annotate your performance freely
 - **Compiles to JavaScript** — clean ES6+ output with safe name mangling
 
 ---
 
 ## Quick Reference
 
+<<<<<<< Updated upstream
 | Groovy                 | Meaning                 |
 | ---------------------- | ----------------------- |
 | `note`                 | mutable variable        |
@@ -59,6 +127,36 @@ Groovy is a statically-typed, music-themed programming language that compiles to
 | `lyric`                | string                  |
 | `gate`                 | boolean                 |
 | `silence`              | void (no return)        |
+=======
+| Groovy | Meaning |
+|--------|---------|
+| `note` | mutable variable |
+| `key` | immutable constant |
+| `chord` | struct / record type |
+| `compose` | function declaration |
+| `fin` | return |
+| `play` | print to stdout |
+| `cue` / `alt` / `drop` | if / else-if / else |
+| `vamp` | while loop |
+| `measure … from … to` | numeric range loop |
+| `measure … in` | collection loop |
+| `encore N` | repeat N times |
+| `cut` | break |
+| `cadence` | end-of-block terminator |
+| `open` / `closed` | true / false |
+| `ghost` | optional type wrapper |
+| `sharp` / `flat` | `++` / `--` |
+| `^` | exponentiation |
+| `??` | unwrap-else (optional) |
+| `?.` | optional member access |
+| `level` | number |
+| `lyric` | string |
+| `gate` | boolean |
+| `silence` | void (no return) |
+| `noise` | any type |
+| `sqrt` | square root (standard library) |
+| `hypot` | hypotenuse (standard library) |
+>>>>>>> Stashed changes
 
 ---
 
@@ -103,6 +201,8 @@ The Groovy analyzer catches the following errors at compile time:
 ---
 
 ## Examples
+
+A few short samples below. Additional full-length written and audio examples are in the `docs` folder.
 
 ### Variables & Constants
 
@@ -506,6 +606,7 @@ while (i_1 < 100) {
 
 ## GitHub Pages
 
+<<<<<<< Updated upstream
 Visit the Groovy project site:
 
 ---
@@ -518,6 +619,9 @@ Visit the Groovy project site:
 | Jay Dillon     | [@jdillon96](https://github.com/jdillon96) |
 | Westley Holmes | [@WesHolmes](https://github.com/WesHolmes) |
 | Jesus Lopez    | —                                          |
+=======
+Visit the Groovy project site: [diegocuadros1.github.io](https://diegocuadros1.github.io/)
+>>>>>>> Stashed changes
 
 ---
 
