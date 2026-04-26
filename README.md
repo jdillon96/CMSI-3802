@@ -69,7 +69,7 @@ MIDI file → preprocessing → source text → lexer/parser → semantic analys
 
 ## Text Representation
 
-Groovy also has a plain-text syntax if you'd rather type than perform. Every construct maps to a music keyword:
+Groovy also has a plain text syntax if you'd rather type than compose. Every construct maps to a music keyword:
 
 - Declare variables with `note x = 5` (mutable) or `key x = 5` (immutable)
 - Define functions with `compose name(params) -> returnType :`
@@ -83,17 +83,17 @@ The five primitive types are `level` (number), `lyric` (string), `gate` (boolean
 
 ## Features
 
-- **Dual input modes** — write programs as MIDI files in a DAW or as plain-text `.groovy` source
-- **Music-themed syntax** — every keyword comes from musical vocabulary
+- **Dual input modes** — write programs as MIDI files or as plain-text `.groovy` source
+- **Music themed syntax** — every keyword comes from musical vocabulary
 - **Static typing** — five primitive types: `level`, `lyric`, `gate`, `silence`, `noise`
-- **Optional types** — first-class `ghost` types with `??` unwrap-else semantics
+- **Optional types** — first class `ghost` types with `??` unwrap-else semantics
 - **Structs** — custom data types via `chord` declarations
 - **Arrays** — typed, subscriptable collections
-- **First-class functions** — typed parameters and return annotations via `compose`
-- **Rich control flow** — `cue`/`alt`/`drop`, `vamp` (while), `measure` (for-range & for-in), `encore` (repeat N times), `cut` (break)
+- **First class functions** — typed parameters and return annotations via `compose`
+- **Control flow** — `cue`/`alt`/`drop`, `vamp` (while), `measure` (for-range & for-in), `encore` (repeat N times), `cut` (break)
 - **Immutability** — `key` declares constants; function parameters are immutable by default
 - **MIDI comment track** — Channel 6 notes are silently discarded, letting you annotate your performance freely
-- **Compiles to JavaScript** — clean ES6+ output with safe name mangling
+- **Compiles to JavaScript** — clean JS output with safe name mangling
 
 ---
 
@@ -106,7 +106,7 @@ The five primitive types are `level` (number), `lyric` (string), `gate` (boolean
 | `chord` | struct / record type |
 | `compose` | function declaration |
 | `fin` | return |
-| `play` | print to stdout |
+| `play` | print |
 | `cue` / `alt` / `drop` | if / else-if / else |
 | `vamp` | while loop |
 | `measure … from … to` | numeric range loop |
