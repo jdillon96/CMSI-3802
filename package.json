@@ -26,8 +26,10 @@
     "test": "c8 node --test test/**/*.test.js"
   },
   "dependencies": {
+    "@tonejs/midi": "^2.0.28",
     "c8": "^11.0.0",
     "graph-stringify": "^1.1.0",
+    "midi-writer-js": "^3.2.1",
     "ohm-js": "^17.5.0",
     "tone": "^15.1.22"
   }

@@ -188,6 +188,27 @@ const tests = [
   ],
   ["leaves cut alone", core.cutStmt(), core.cutStmt()],
   ["leaves short return alone", core.shortReturnStmt(), core.shortReturnStmt()],
+  // --- STANDARD LIBRARY FOLDING ---
+  [
+    "folds sqrt",
+    core.functionCall(core.standardLibrary.sqrt, [16], "level"),
+    4,
+  ],
+  [
+    "folds hypot",
+    core.functionCall(core.standardLibrary.hypot, [3, 4], "level"),
+    5,
+  ],
+  [
+    "leaves sqrt alone with variables",
+    core.functionCall(core.standardLibrary.sqrt, [x], "level"),
+    core.functionCall(core.standardLibrary.sqrt, [x], "level"),
+  ],
+  [
+    "leaves hypot alone with variables",
+    core.functionCall(core.standardLibrary.hypot, [x, 4], "level"),
+    core.functionCall(core.standardLibrary.hypot, [x, 4], "level"),
+  ],
 ];
 
 describe("The optimizer", () => {

@@ -184,3 +184,12 @@ export function conditionalExp(test, consequent, alternate, type) {
 export function unwrapElseExp(optional, alternate, type) {
   return { kind: "UnwrapElseExpression", optional, alternate, type };
 }
+
+export const standardLibrary = Object.freeze({
+  sqrt: functionObject("sqrt", [variable("x", true, "level")], "level"),
+  hypot: functionObject(
+    "hypot",
+    [variable("x", true, "level"), variable("y", true, "level")],
+    "level",
+  ),
+});

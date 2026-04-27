@@ -194,6 +194,23 @@ const fixtures = [
       console.log((!y_2));
     `,
   },
+  {
+    name: "standard library",
+    source: `
+      note a = 16
+      note b = 3
+      note c = 4
+      play sqrt(a)
+      play hypot(b, c)
+    `,
+    expected: dedent`
+      let a_1 = 16;
+      let b_2 = 3;
+      let c_3 = 4;
+      console.log(Math.sqrt(a_1));
+      console.log(Math.hypot(b_2, c_3));
+    `,
+  },
 ];
 
 describe("The code generator", () => {

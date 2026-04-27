@@ -1,5 +1,67 @@
-import { Midi } from "@tonejs/midi";
+import pkg from "@tonejs/midi";
+const { Midi } = pkg;
 import fs from "fs";
+
+// --- 1. THE SINGLE SOURCE OF TRUTH ---
+export const GROOVY_CHANNELS = {
+  1: [
+    // Keywords
+    "note",
+    "key",
+    "chord",
+    "play",
+    "measure",
+    "from",
+    "to",
+    "vamp",
+    "encore",
+    "cut",
+    "compose",
+    "fin",
+    "cadence",
+    "cue",
+    "alt",
+    "drop",
+    "gate",
+    "open",
+    "closed",
+    "ghost",
+    "level",
+    "lyric",
+    "silence",
+    "noise",
+    "sqrt",
+    "hypot",
+    "sharp",
+    "flat",
+  ],
+  2: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", // Alphabet
+  3: "0123456789.+-*/%^=", // Math & Numbers
+  4: "{}()[],;:<>", // Punctuation
+};
+
+// --- 2. AUTO-GENERATE THE REVERSE DICTIONARY ---
+export const REVERSE_MAP = new Map();
+
+for (const [channelStr, items] of Object.entries(GROOVY_CHANNELS)) {
+  const channel = parseInt(channelStr);
+  const len = items.length;
+
+  for (let i = 0; i < len; i++) {
+    // To make it sound musical instead of like a screeching modem,
+    // we calculate an octave multiplier to push the base index up near Middle C (pitch 60).
+    const multiplier = Math.floor(60 / len);
+    const pitch = i + multiplier * len;
+
+    REVERSE_MAP.set(items[i], { channel, pitch });
+  }
+}
+
+// Add explicit whitespace overrides (Channel 5)
+// Space = 0 mod 3, Tab = 1 mod 3, Newline = 2 mod 3
+REVERSE_MAP.set(" ", { channel: 5, pitch: 60 });
+REVERSE_MAP.set("\t", { channel: 5, pitch: 61 });
+REVERSE_MAP.set("\n", { channel: 5, pitch: 62 });
 
 export function processMidi(filePath) {
   const midiData = fs.readFileSync(filePath);
@@ -57,20 +119,16 @@ export function processMidi(filePath) {
 
     // B. Channel Routing
     switch (note.channel) {
-      case 1: // Keywords & Library Functions
-        charToAppend = getKeyword(note.pitch);
+      case 1: // Keywords
+        // Note: We add a trailing space to keywords so they don't jam together
+        const keywords = GROOVY_CHANNELS[1];
+        charToAppend = keywords[note.pitch % keywords.length];
         break;
       case 2: // Alphabet
-        const ALPHABET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        charToAppend = ALPHABET[note.pitch % ALPHABET.length];
-        break;
       case 3: // Numbers & Math Logic
-        const MATH_CHARS = "0123456789.+-*/%^=";
-        charToAppend = MATH_CHARS[note.pitch % MATH_CHARS.length];
-        break;
       case 4: // Special Characters & Punctuation
-        const SPECIALS = "{}()[],;:<>";
-        charToAppend = SPECIALS[note.pitch % SPECIALS.length];
+        const chars = GROOVY_CHANNELS[note.channel];
+        charToAppend = chars[note.pitch % chars.length];
         break;
       case 5: // Explicit Whitespace
         if (note.pitch % 3 === 0) charToAppend = " ";
@@ -103,63 +161,4 @@ export function processMidi(filePath) {
   });
 
   return { sourceCode, sourceMap };
-}
-
-function getKeyword(pitch) {
-  // 1. Core Variable & Struct Logic
-  // 2. I/O & Loops
-  // 3. Operators & Functions
-  // 4. Control Flow
-  // 5. Types & Booleans
-  // 6. Math Library
-  const KEYWORDS = [
-    // Variables & Structs
-    "note",
-    "key",
-    "chord",
-
-    // I/O & Loops
-    "play",
-    "measure",
-    "from",
-    "to",
-    "vamp",
-    "encore",
-    "cut",
-
-    // Functions & Scope
-    "compose",
-    "fin",
-    "cadence",
-
-    // Control Flow
-    "cue",
-    "alt",
-    "drop",
-
-    // Booleans & Types
-    "gate",
-    "open",
-    "closed",
-    "ghost",
-    "level",
-    "lyric",
-    "silence",
-    "noise",
-
-    // Standard Library Functions
-    "sqrt",
-    "hypot",
-
-    // Postfix Operators
-    "sharp",
-    "flat",
-  ];
-
-  // Map the 128 possible MIDI pitches to our array using modulo
-  const word = KEYWORDS[pitch % KEYWORDS.length];
-
-  // Return the word with a trailing space to guarantee it stays
-  // separated from identifiers, even if the user plays the notes too fast.
-  return word;
 }

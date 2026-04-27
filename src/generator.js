@@ -1,3 +1,5 @@
+import * as core from "./core.js";
+
 export default function generate(program) {
   const output = [];
 
@@ -71,6 +73,14 @@ export default function generate(program) {
       return targetName(f);
     },
     FunctionCall(c) {
+      // Safely map Groovy standard library to native JS Math functions
+      if (c.callee === core.standardLibrary.sqrt) {
+        return `Math.sqrt(${gen(c.arguments[0])})`;
+      }
+      if (c.callee === core.standardLibrary.hypot) {
+        return `Math.hypot(${gen(c.arguments[0])}, ${gen(c.arguments[1])})`;
+      }
+      // Standard user-defined function call
       return `${gen(c.callee)}(${c.arguments.map(gen).join(", ")})`;
     },
 

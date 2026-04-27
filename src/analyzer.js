@@ -79,6 +79,11 @@ function validateSameType(target, source, at) {
 
 export default function translate(match) {
   let context = new Context();
+
+  for (const [name, entity] of Object.entries(core.standardLibrary)) {
+    context.set(name, entity);
+  }
+
   const grammar = match.matcher.grammar;
 
   const actions = {

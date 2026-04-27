@@ -228,6 +228,22 @@ const optimizers = {
   FunctionCall(c) {
     c.callee = optimize(c.callee);
     c.arguments = c.arguments.map(optimize);
+
+    // Constant Folding: Calculate standard library math at compile time if inputs are raw numbers
+    if (
+      c.callee === core.standardLibrary.sqrt &&
+      c.arguments[0].constructor === Number
+    ) {
+      return Math.sqrt(c.arguments[0]);
+    }
+    if (
+      c.callee === core.standardLibrary.hypot &&
+      c.arguments[0].constructor === Number &&
+      c.arguments[1].constructor === Number
+    ) {
+      return Math.hypot(c.arguments[0], c.arguments[1]);
+    }
+
     return c;
   },
 };
