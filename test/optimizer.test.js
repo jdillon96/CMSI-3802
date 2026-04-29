@@ -35,6 +35,12 @@ const comparisonFolding = [
   ["folds !=", bin(5, "!=", 8), true],
   ["folds >=", bin(5, ">=", 8), false],
   ["folds >", bin(5, ">", 8), false],
+  ["folds x < x", bin(x, "<", x), false],
+  ["folds x > x", bin(x, ">", x), false],
+  ["folds x != x", bin(x, "!=", x), false],
+  ["folds x == x", bin(x, "==", x), true],
+  ["folds x <= x", bin(x, "<=", x), true],
+  ["folds x >= x", bin(x, ">=", x), true],
 ]
 
 const strengthReductions = [
@@ -46,16 +52,32 @@ const strengthReductions = [
   ["optimizes 0+", bin(0, "+", x), x],
   ["optimizes 0*", bin(0, "*", x), 0],
   ["optimizes 0/", bin(0, "/", x), 0],
+  ["optimizes 0%", bin(0, "%", x), 0],
+  ["optimizes 0-", bin(0, "-", x), core.unaryExp("-", x, "level")],
+  ["optimizes %1", bin(x, "%", 1), 0],
   ["optimizes 1*", bin(1, "*", x), x],
   ["optimizes 1**", bin(1, "**", x), 1],
   ["optimizes 1^", bin(1, "^", x), 1],
   ["optimizes **0", bin(x, "**", 0), 1],
   ["optimizes ^0", bin(x, "^", 0), 1],
+  ["optimizes x-x", bin(x, "-", x), 0],
+  ["optimizes x/x", bin(x, "/", x), 1],
+  ["optimizes x%x", bin(x, "%", x), 0],
+  ["optimizes x + (-y)", bin(x, "+", un("-", y)), bin(x, "-", y)],
+  ["optimizes x - (-y)", bin(x, "-", un("-", y)), bin(x, "+", y)],
 ]
 
 const unaryFolding = [
   ["folds unary -", un("-", 8), -8],
   ["folds unary !", un("!", true), false],
+  ["folds !(!x)", un("!", un("!", x)), x],
+  ["folds !(x < y)", un("!", bin(x, "<", y)), bin(x, ">=", y)],
+  ["folds !(x <= y)", un("!", bin(x, "<=", y)), bin(x, ">", y)],
+  ["folds !(x > y)", un("!", bin(x, ">", y)), bin(x, "<=", y)],
+  ["folds !(x >= y)", un("!", bin(x, ">=", y)), bin(x, "<", y)],
+  ["folds !(x == y)", un("!", bin(x, "==", y)), bin(x, "!=", y)],
+  ["folds !(x != y)", un("!", bin(x, "!=", y)), bin(x, "==", y)],
+  ["leaves !(x + y) alone", un("!", bin(x, "+", y)), un("!", bin(x, "+", y))],
   ["leaves boolean variables alone", un("!", y), un("!", y)],
   ["leaves optional ghost alone", un("ghost", 5), un("ghost", 5)],
 ]

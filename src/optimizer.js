@@ -7,6 +7,8 @@ import * as core from "./core.js"
 
 const isZero = n => n === 0
 const isOne = n => n === 1
+const isSameVar = (l, r) =>
+  l?.kind === "Variable" && r?.kind === "Variable" && l.name === r.name
 
 // Flattens optimized arrays and stops processing after terminal jumps
 function optimizeBlock(statements) {
@@ -198,22 +200,69 @@ const optimizers = {
         if (e.operator === ">=") return e.left >= e.right
         if (e.operator === ">") return e.left > e.right
       }
-      if (isZero(e.left) && e.operator === "+") return e.right
-      if (isOne(e.left) && e.operator === "*") return e.right
-      if (isOne(e.left) && (e.operator === "**" || e.operator === "^")) return e.left
-      if (isZero(e.left) && ["*", "/"].includes(e.operator)) return e.left
+      if (isZero(e.left)) {
+        if (e.operator === "+") return e.right
+        if (e.operator === "-") return core.unaryExp("-", e.right, "level")
+        if (["*", "/", "%"].includes(e.operator)) return 0
+      }
+      if (isOne(e.left)) {
+        if (e.operator === "*") return e.right
+        if (["**", "^"].includes(e.operator)) return 1
+      }
     } else if (e.right.constructor === Number) {
-      if (["+", "-"].includes(e.operator) && isZero(e.right)) return e.left
-      if (["*", "/"].includes(e.operator) && isOne(e.right)) return e.left
-      if (e.operator === "*" && isZero(e.right)) return e.right
-      if ((e.operator === "**" || e.operator === "^") && isZero(e.right)) return 1
+      if (isZero(e.right)) {
+        if (["+", "-"].includes(e.operator)) return e.left
+        if (e.operator === "*") return 0
+        if (["**", "^"].includes(e.operator)) return 1
+      }
+      if (isOne(e.right)) {
+        if (["*", "/"].includes(e.operator)) return e.left
+        if (e.operator === "%") return 0
+      }
+    } else if (isSameVar(e.left, e.right)) {
+      if (["-", "%"].includes(e.operator)) return 0
+      if (e.operator === "/") return 1
+      if (["<", ">", "!="].includes(e.operator)) return false
+      if (["<=", ">=", "=="].includes(e.operator)) return true
     }
+
+    if (e.right?.kind === "UnaryExpression" && e.right.operator === "-") {
+      if (e.operator === "+") {
+        e.operator = "-"
+        e.right = e.right.argument
+      } else if (e.operator === "-") {
+        e.operator = "+"
+        e.right = e.right.argument
+      }
+    }
+
     return e
   },
   UnaryExpression(e) {
     e.argument = optimize(e.argument)
     if (e.argument.constructor === Number && e.operator === "-") return -e.argument
     if (e.argument.constructor === Boolean && e.operator === "!") return !e.argument
+
+    if (e.operator === "!") {
+      if (e.argument.kind === "UnaryExpression" && e.argument.operator === "!") {
+        return e.argument.argument
+      }
+      if (e.argument.kind === "BinaryExpression") {
+        const opMap = {
+          "<": ">=",
+          "<=": ">",
+          ">": "<=",
+          ">=": "<",
+          "==": "!=",
+          "!=": "==",
+        }
+        if (opMap[e.argument.operator]) {
+          e.argument.operator = opMap[e.argument.operator]
+          return e.argument
+        }
+      }
+    }
+
     return e
   },
   ArrayLiteral(e) {
