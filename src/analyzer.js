@@ -1,4 +1,9 @@
+// Enforces static type safety, variable immutability, and scoping rules.
+// Uses Ohm.js semantics to traverse the parsed tree and build a validated Abstract Syntax Tree.
+
 import * as core from "./core.js";
+
+// -------- SCOPE TRACKING --------
 
 class Context {
   constructor(parent = null) {
@@ -22,7 +27,8 @@ function error(message, at) {
   throw new Error(`${prefix}${message}`);
 }
 
-// Fixed typeOf: If it's a native number/boolean from our literal translations, type it correctly
+// -------- TYPE VALIDATION HELPERS --------
+
 function typeOf(value) {
   if (typeof value === "string") return value;
   if (typeof value === "number") return "level";
@@ -35,7 +41,6 @@ function typesMatch(t1, t2) {
   if (typeof t1 !== typeof t2) return false;
   if (typeof t1 === "object" && typeof t2 === "object") {
     if (t1.kind !== t2.kind) return false;
-    // Cleaned up the dead .name branches
     return typesMatch(t1.baseType, t2.baseType);
   }
   return false;
@@ -77,6 +82,8 @@ function validateSameType(target, source, at) {
   );
 }
 
+// -------- SEMANTIC ANALYZER --------
+
 export default function translate(match) {
   let context = new Context();
 
@@ -87,7 +94,6 @@ export default function translate(match) {
   const grammar = match.matcher.grammar;
 
   const actions = {
-    // 1. Core iteration & terminal handling for Ohm v16
     _iter(...children) {
       return children.map((c) => c.translate());
     },
@@ -98,41 +104,11 @@ export default function translate(match) {
     Program(statements) {
       return core.program(statements.children.map((s) => s.translate()));
     },
-
     Block(statements) {
       return statements.children.map((s) => s.translate());
     },
 
-    Statement_print(_play, expression) {
-      return core.playStmt(expression.translate());
-    },
-
-    Statement_assign(idExp, _eq, expression) {
-      const target = idExp.translate();
-      const source = expression.translate();
-      validateNotReadOnly(target, idExp.source);
-      validateSameType(target, source, idExp.source);
-      return core.assignStmt(target, source);
-    },
-
-    Statement_bump(idExp, op) {
-      const target = idExp.translate();
-      validateLevel(target, idExp.source);
-      validateNotReadOnly(target, idExp.source);
-      return core.bumpStmt(target, op.sourceString);
-    },
-
-    Statement_break(_cut) {
-      return core.cutStmt();
-    },
-
-    Statement_return(_fin, expression) {
-      return core.returnStmt(expression.translate());
-    },
-
-    Statement_shortreturn(_fin) {
-      return core.shortReturnStmt();
-    },
+    // -------- DECLARATIONS --------
 
     VarDecl(modifier, id, _eq, expression) {
       const source = expression.translate();
@@ -183,6 +159,37 @@ export default function translate(match) {
       return core.variable(id.sourceString, true, type.translate());
     },
 
+    // -------- STATEMENTS & CONTROL FLOW --------
+
+    Statement_print(_play, expression) {
+      return core.playStmt(expression.translate());
+    },
+
+    Statement_assign(idExp, _eq, expression) {
+      const target = idExp.translate();
+      const source = expression.translate();
+      validateNotReadOnly(target, idExp.source);
+      validateSameType(target, source, idExp.source);
+      return core.assignStmt(target, source);
+    },
+
+    Statement_bump(idExp, op) {
+      const target = idExp.translate();
+      validateLevel(target, idExp.source);
+      validateNotReadOnly(target, idExp.source);
+      return core.bumpStmt(target, op.sourceString);
+    },
+
+    Statement_break(_cut) {
+      return core.cutStmt();
+    },
+    Statement_return(_fin, expression) {
+      return core.returnStmt(expression.translate());
+    },
+    Statement_shortreturn(_fin) {
+      return core.shortReturnStmt();
+    },
+
     IfStmt(
       _cue,
       testExp,
@@ -220,6 +227,8 @@ export default function translate(match) {
         alternates.length > 0 ? [alternates[0]] : [],
       );
     },
+
+    // -------- LOOPS --------
 
     LoopStmt_while(_vamp, expression, _colon, block, _cadence) {
       const test = expression.translate();
@@ -286,6 +295,8 @@ export default function translate(match) {
       return core.measureInStmt(iterator, collection, loopBody);
     },
 
+    // -------- TYPES & EXPRESSIONS --------
+
     Type_primitive(prim) {
       return prim.sourceString;
     },
@@ -330,7 +341,6 @@ export default function translate(match) {
       return core.unwrapElseExp(left, right, typeOf(right));
     },
 
-    // 2. Fixed iteration handling for deeply chained logical operators
     Exp2_or(left, _ops, right) {
       const rightNodes = right.translate();
       let x = left.translate();
@@ -358,12 +368,10 @@ export default function translate(match) {
       const y = right.translate();
       const operator = op.sourceString;
 
-      // <, <=, >, >= strictly require levels (numbers)
       if (["<", "<=", ">", ">="].includes(operator)) {
         validateLevel(x, left.source);
         validateLevel(y, right.source);
       } else {
-        // == and != just require both sides to be the exact same type
         validateSameType(x, y, left.source);
       }
 
@@ -445,18 +453,13 @@ export default function translate(match) {
       const object = objectExp.translate();
       const structName = typeOf(object);
 
-      // If the type isn't a string (like an ArrayType), it definitely isn't a struct name
-      if (typeof structName !== "string") {
+      if (typeof structName !== "string")
         error("Target is not a chord", objectExp.source);
-      }
 
       let struct;
       try {
-        // Try to find the type name in our context (e.g., look up "Point")
         struct = context.get(structName, objectExp.source);
       } catch (err) {
-        // Catch generic "Undefined identifier" errors (like trying to look up "level")
-        // and throw the specific error the test expects
         error("Target is not a chord", objectExp.source);
       }
 
@@ -491,7 +494,6 @@ export default function translate(match) {
           elements.source,
         );
       }
-
       return core.arrayLiteral(
         elems,
         core.typeDeclaration("ArrayType", baseType),
@@ -505,7 +507,8 @@ export default function translate(match) {
       return context.get(id.sourceString, id.source);
     },
 
-    // Fixed: Native literals now correctly resolve to JS primitives so typeOf catches them
+    // -------- LITERALS & TERMINALS --------
+
     intlit(_digits) {
       return Number(this.sourceString);
     },

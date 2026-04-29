@@ -1,9 +1,14 @@
 #! /usr/bin/env node
 
+// Main command-line interface for the Groovy compiler.
+// Handles file reading, MIDI preprocessing, and routing through the compiler pipeline.
+
 import * as fs from "node:fs/promises";
 import stringify from "graph-stringify";
-import { processMidi } from "./preprocessor.js";
+import { processMidi } from "./preProcessing.js";
 import compile from "./compiler.js";
+
+// -------- SETUP --------
 
 const help = `Groovy Compiler
 
@@ -18,41 +23,35 @@ The <outputType> must be one of:
   js         Spits out the executable JavaScript translation
 `;
 
+// -------- COMPILER PIPELINE --------
+
 async function compileFromFile(filename, outputType) {
   try {
     let sourceCode = "";
     let sourceMap = [];
 
-    // 1. Route based on file extension
     if (filename.endsWith(".mid") || filename.endsWith(".midi")) {
-      // Audio Route: Preprocess MIDI to get text and audio timestamps
       const result = processMidi(filename);
       sourceCode = result.sourceCode;
       sourceMap = result.sourceMap;
     } else {
-      // Text Route: Read the .groovy file directly
       const buffer = await fs.readFile(filename);
       sourceCode = buffer.toString();
-      // sourceMap stays empty [] for text files
     }
 
-    // 2. Run the compiler pipeline
     const compiled = compile(sourceCode, outputType, sourceMap);
 
-    // 3. Format the output
-    // If the output is an AST object, stringify the graph.
-    // If it's a string (like JS code or "Syntax is ok"), print it raw.
     console.log(
       typeof compiled === "object" ? stringify(compiled, "kind") : compiled,
     );
   } catch (e) {
-    // Standard terminal error formatting (Red text)
     console.error(`\x1b[31m${e.message}\x1b[0m`);
     process.exitCode = 1;
   }
 }
 
-// Ensure the user provided exactly two arguments: <file> and <outputType>
+// -------- CLI EXECUTION --------
+
 if (process.argv.length === 4) {
   await compileFromFile(process.argv[2], process.argv[3]);
 } else {

@@ -1,10 +1,14 @@
 import * as core from "./core.js";
 
+// Translates the optimized Groovy Abstract Syntax Tree (AST) into executable JavaScript.
+// Handles variable renaming, scoping, and mapping Groovy constructs to native JS equivalents.
+
 export default function generate(program) {
+  // -------- SETUP --------
+
   const output = [];
 
-  // Variable and function names in Groovy might collide with JS reserved keywords (like 'class' or 'for').
-  // This maps every Groovy entity to a safe, unique JavaScript name (e.g., 'x_1', 'add_2').
+  // Prevents JS keyword collisions
   const targetName = ((mapping) => {
     return (entity) => {
       if (!mapping.has(entity)) {
@@ -14,26 +18,21 @@ export default function generate(program) {
     };
   })(new Map());
 
-  // The core translation engine
+  // -------- CORE GENERATOR --------
+
   const gen = (node) => {
-    // Safely map Groovy literal primitives into standard JS syntax
     if (node === undefined) return "undefined";
     if (typeof node !== "object") return JSON.stringify(node);
-
-    // Throw a descriptive error if an unknown AST node slips through
     if (!generators[node.kind])
       throw new Error(`No generator for ${node.kind}`);
-
     return generators[node.kind](node);
   };
 
-  // A helper to allow standalone expressions (like a FunctionCall) to safely exist as statements
+  // Wraps standalone expression statements
   const generateBlock = (statements) => {
     statements.forEach((statement) => {
       const result = gen(statement);
-      if (typeof result === "string") {
-        output.push(`${result};`);
-      }
+      if (typeof result === "string") output.push(`${result};`);
     });
   };
 
@@ -42,9 +41,9 @@ export default function generate(program) {
       generateBlock(p.body);
     },
 
-    // --- VARIABLES & TYPES ---
+    // -------- STRUCTURE & TYPES --------
+
     VariableDeclaration(d) {
-      // Both 'note' and 'key' become 'let' since the Analyzer already enforced immutability!
       output.push(`let ${gen(d.variable)} = ${gen(d.initializer)};`);
     },
     Variable(v) {
@@ -61,7 +60,8 @@ export default function generate(program) {
       output.push("}");
     },
 
-    // --- COMPOSITIONS (FUNCTIONS) ---
+    // -------- FUNCTIONS --------
+
     FunctionDeclaration(d) {
       output.push(
         `function ${gen(d.function)}(${d.function.params.map(gen).join(", ")}) {`,
@@ -73,18 +73,15 @@ export default function generate(program) {
       return targetName(f);
     },
     FunctionCall(c) {
-      // Safely map Groovy standard library to native JS Math functions
-      if (c.callee === core.standardLibrary.sqrt) {
+      if (c.callee === core.standardLibrary.sqrt)
         return `Math.sqrt(${gen(c.arguments[0])})`;
-      }
-      if (c.callee === core.standardLibrary.hypot) {
+      if (c.callee === core.standardLibrary.hypot)
         return `Math.hypot(${gen(c.arguments[0])}, ${gen(c.arguments[1])})`;
-      }
-      // Standard user-defined function call
       return `${gen(c.callee)}(${c.arguments.map(gen).join(", ")})`;
     },
 
-    // --- STATEMENTS & CONTROL FLOW ---
+    // -------- STATEMENTS & CONTROL FLOW --------
+
     PlayStatement(s) {
       output.push(`console.log(${gen(s.argument)});`);
     },
@@ -109,7 +106,6 @@ export default function generate(program) {
       generateBlock(s.consequent);
 
       if (s.alternate && s.alternate.length > 0) {
-        // Handle cue-alt (else-if) chains vs cue-drop (else) blocks
         if (s.alternate[0].kind === "IfStatement") {
           output.push("} else");
           gen(s.alternate[0]);
@@ -123,14 +119,15 @@ export default function generate(program) {
       }
     },
 
-    // --- LOOPS ---
+    // -------- LOOPS --------
+
     VampStatement(s) {
       output.push(`while (${gen(s.test)}) {`);
       generateBlock(s.body);
       output.push("}");
     },
     EncoreStatement(s) {
-      // Encore requires us to generate a hidden counter variable for the JS loop
+      // Hidden counter for JS loop
       const i = targetName({ name: "i" });
       output.push(`for (let ${i} = 0; ${i} < ${gen(s.count)}; ${i}++) {`);
       generateBlock(s.body);
@@ -150,7 +147,8 @@ export default function generate(program) {
       output.push("}");
     },
 
-    // --- EXPRESSIONS ---
+    // -------- EXPRESSIONS --------
+
     ConditionalExpression(e) {
       return `((${gen(e.test)}) ? (${gen(e.consequent)}) : (${gen(e.alternate)}))`;
     },
@@ -158,12 +156,10 @@ export default function generate(program) {
       return `(${gen(e.optional)} ?? ${gen(e.alternate)})`;
     },
     BinaryExpression(e) {
-      // Map standard Groovy operators to JS equivalents
       const op = { "==": "===", "!=": "!==" }[e.operator] ?? e.operator;
       return `(${gen(e.left)} ${op} ${gen(e.right)})`;
     },
     UnaryExpression(e) {
-      // The ghost instantiation just yields the value safely
       if (e.operator === "ghost") return gen(e.argument);
       return `(${e.operator}${gen(e.argument)})`;
     },

@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import optimize from "../src/optimizer.js";
 import * as core from "../src/core.js";
 
-// Set up some mock variables to use in tests
 const x = core.variable("x", false, "level");
 const y = core.variable("y", false, "level");
 const arr = core.variable(
@@ -13,16 +12,15 @@ const arr = core.variable(
 );
 const f = core.functionObject("f", [x], "level");
 
-// Set up some mock statements
 const xpp = core.bumpStmt(x, "sharp");
 const playX = core.playStmt(x);
 
-// Helpers to quickly make math and logic nodes
 const bin = (l, op, r) => core.binaryExp(l, op, r, "unknown");
 const un = (op, a) => core.unaryExp(op, a, "unknown");
 
-const tests = [
-  // --- MATH CONSTANT FOLDING ---
+// -------- MATH & LOGIC FOLDING --------
+
+const mathFolding = [
   ["folds +", bin(5, "+", 8), 13],
   ["folds -", bin(5, "-", 8), -3],
   ["folds *", bin(5, "*", 8), 40],
@@ -30,16 +28,24 @@ const tests = [
   ["folds **", bin(5, "**", 8), 390625],
   ["folds ^", bin(5, "^", 8), 390625],
   ["folds %", bin(10, "%", 3), 1],
+  [
+    "folds deep mathematical trees",
+    bin(bin(1, "+", 1), "+", bin(2, "*", 2)),
+    6,
+  ],
+  ["handles division by zero", bin(5, "/", 0), Infinity],
+];
 
-  // --- COMPARISON FOLDING ---
+const comparisonFolding = [
   ["folds <", bin(5, "<", 8), true],
   ["folds <=", bin(5, "<=", 8), true],
   ["folds ==", bin(5, "==", 5), true],
   ["folds !=", bin(5, "!=", 8), true],
   ["folds >=", bin(5, ">=", 8), false],
   ["folds >", bin(5, ">", 8), false],
+];
 
-  // --- STRENGTH REDUCTIONS ---
+const strengthReductions = [
   ["optimizes +0", bin(x, "+", 0), x],
   ["optimizes -0", bin(x, "-", 0), x],
   ["optimizes *1", bin(x, "*", 1), x],
@@ -53,14 +59,16 @@ const tests = [
   ["optimizes 1^", bin(1, "^", x), 1],
   ["optimizes **0", bin(x, "**", 0), 1],
   ["optimizes ^0", bin(x, "^", 0), 1],
+];
 
-  // --- UNARY FOLDING ---
+const unaryFolding = [
   ["folds unary -", un("-", 8), -8],
   ["folds unary !", un("!", true), false],
   ["leaves boolean variables alone", un("!", y), un("!", y)],
   ["leaves optional ghost alone", un("ghost", 5), un("ghost", 5)],
+];
 
-  // --- LOGICAL REDUCTIONS ---
+const logicalReductions = [
   ["removes left false from ||", bin(false, "||", x), x],
   ["removes right false from ||", bin(x, "||", false), x],
   ["removes left true from ||", bin(true, "||", x), true],
@@ -70,8 +78,12 @@ const tests = [
   ["removes right true from &&", bin(x, "&&", true), x],
   ["removes left false from &&", bin(false, "&&", x), false],
   ["removes right false from &&", bin(x, "&&", false), false],
+  ["removes false && false", bin(false, "&&", false), false],
+];
 
-  // --- STATEMENT OPTIMIZATIONS ---
+// -------- CONTROL FLOW & STATEMENTS --------
+
+const statementOptimizations = [
   [
     "removes x=x at beginning",
     core.program([core.assignStmt(x, x), xpp]),
@@ -87,7 +99,6 @@ const tests = [
     core.assignStmt(x, y),
     core.assignStmt(x, y),
   ],
-
   ["optimizes if-true", core.ifStmt(true, [xpp], []), [xpp]],
   ["optimizes if-false", core.ifStmt(false, [xpp], [playX]), [playX]],
   ["optimizes if-false no alternate", core.ifStmt(false, [xpp], []), []],
@@ -96,21 +107,61 @@ const tests = [
     core.ifStmt(x, [xpp], [xpp]),
     core.ifStmt(x, [xpp], [xpp]),
   ],
+  ["removes empty if block with pure test", core.ifStmt(x, [], []), []],
+  ["removes empty if block with numeric test", core.ifStmt(1, [], []), []],
+  [
+    "leaves empty if block with impure test",
+    core.ifStmt(core.functionCall(f, [1], "level"), [], []),
+    core.ifStmt(core.functionCall(f, [1], "level"), [], []),
+  ],
+  [
+    "removes dead code after cut",
+    core.program([core.cutStmt(), xpp, playX]),
+    core.program([core.cutStmt()]),
+  ],
+  [
+    "removes dead code after return",
+    core.program([core.returnStmt(1), playX]),
+    core.program([core.returnStmt(1)]),
+  ],
+  [
+    "removes dead code after short return",
+    core.program([core.shortReturnStmt(), xpp]),
+    core.program([core.shortReturnStmt()]),
+  ],
+];
 
+const loopOptimizations = [
   ["optimizes vamp-false", core.vampStmt(false, [xpp]), []],
   [
     "leaves vamp-true alone",
     core.vampStmt(true, [xpp]),
     core.vampStmt(true, [xpp]),
   ],
-
+  ["removes empty vamp loop with pure test", core.vampStmt(x, []), []],
+  ["removes empty vamp loop with numeric test", core.vampStmt(1, []), []],
+  [
+    "removes empty vamp loop with true boolean test",
+    core.vampStmt(true, []),
+    [],
+  ],
   ["optimizes encore-0", core.encoreStmt(0, [xpp]), []],
   [
     "leaves encore pass-through",
-    core.encoreStmt(bin(1, "+", 1), [xpp]),
-    core.encoreStmt(2, [xpp]),
+    core.encoreStmt(bin(10, "+", 10), [xpp]),
+    core.encoreStmt(20, [xpp]),
   ],
-
+  ["removes empty encore loop", core.encoreStmt(5, []), []],
+  [
+    "unrolls small encore loops",
+    core.encoreStmt(3, [playX]),
+    [playX, playX, playX],
+  ],
+  [
+    "leaves large encore loops alone",
+    core.encoreStmt(100, [playX]),
+    core.encoreStmt(100, [playX]),
+  ],
   [
     "optimizes measure-range low > high",
     core.measureRangeStmt(x, 10, 5, [xpp]),
@@ -121,7 +172,6 @@ const tests = [
     core.measureRangeStmt(x, bin(1, "+", 1), bin(3, "+", 3), [xpp]),
     core.measureRangeStmt(x, 2, 6, [xpp]),
   ],
-
   [
     "optimizes measure-in empty array",
     core.measureInStmt(x, core.arrayLiteral([], "ArrayType"), [xpp]),
@@ -134,8 +184,11 @@ const tests = [
     ]),
     core.measureInStmt(x, core.arrayLiteral([2], "ArrayType"), [xpp]),
   ],
+];
 
-  // --- EXPRESSION PASS-THROUGHS ---
+// -------- EXPRESSIONS & STANDARD LIBRARY --------
+
+const expressionPassThroughs = [
   ["optimizes ternary-true", core.conditionalExp(true, 1, 2, "level"), 1],
   ["optimizes ternary-false", core.conditionalExp(false, 1, 2, "level"), 2],
   [
@@ -143,7 +196,6 @@ const tests = [
     core.conditionalExp(x, 1, 2, "level"),
     core.conditionalExp(x, 1, 2, "level"),
   ],
-
   [
     "optimizes in struct decl",
     core.structDecl("Point", [core.fieldDecl("x", "level")]),
@@ -188,7 +240,9 @@ const tests = [
   ],
   ["leaves cut alone", core.cutStmt(), core.cutStmt()],
   ["leaves short return alone", core.shortReturnStmt(), core.shortReturnStmt()],
-  // --- STANDARD LIBRARY FOLDING ---
+];
+
+const stdlibFolding = [
   [
     "folds sqrt",
     core.functionCall(core.standardLibrary.sqrt, [16], "level"),
@@ -211,10 +265,58 @@ const tests = [
   ],
 ];
 
-describe("The optimizer", () => {
-  for (const [scenario, before, after] of tests) {
-    it(`${scenario}`, () => {
-      assert.deepEqual(optimize(before), after);
-    });
-  }
+describe("The Optimizer", () => {
+  describe("Math & Logic Folding", () => {
+    const mathLogicCategories = {
+      "Math Constant Folding": mathFolding,
+      "Comparison Folding": comparisonFolding,
+      "Strength Reductions": strengthReductions,
+      "Unary Folding": unaryFolding,
+      "Logical Reductions": logicalReductions,
+    };
+
+    for (const [category, fixtures] of Object.entries(mathLogicCategories)) {
+      describe(category, () => {
+        for (const [scenario, before, after] of fixtures) {
+          it(`${scenario}`, () => {
+            assert.deepEqual(optimize(before), after);
+          });
+        }
+      });
+    }
+  });
+
+  describe("Control Flow & Statements", () => {
+    const controlFlowCategories = {
+      "Statement Optimizations": statementOptimizations,
+      "Loop Optimizations": loopOptimizations,
+    };
+
+    for (const [category, fixtures] of Object.entries(controlFlowCategories)) {
+      describe(category, () => {
+        for (const [scenario, before, after] of fixtures) {
+          it(`${scenario}`, () => {
+            assert.deepEqual(optimize(before), after);
+          });
+        }
+      });
+    }
+  });
+
+  describe("Expressions & Standard Library", () => {
+    const expressionCategories = {
+      "Expression Pass-Throughs": expressionPassThroughs,
+      "Standard Library Folding": stdlibFolding,
+    };
+
+    for (const [category, fixtures] of Object.entries(expressionCategories)) {
+      describe(category, () => {
+        for (const [scenario, before, after] of fixtures) {
+          it(`${scenario}`, () => {
+            assert.deepEqual(optimize(before), after);
+          });
+        }
+      });
+    }
+  });
 });

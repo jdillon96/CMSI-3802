@@ -9,16 +9,17 @@ function dedent(s) {
   return `${s}`.replace(/(?<=\n)\s+/g, "").trim();
 }
 
-const fixtures = [
+// -------- CORE STATEMENTS & DECLARATIONS --------
+
+const coreFixtures = [
   {
-    name: "small",
+    name: "variable declarations and arithmetic",
     source: `
       note x = 1
       x sharp
       x flat
       key y = open
       note z = x ^ 2
-      play (y && closed) || (x != 5)
     `,
     expected: dedent`
       let x_1 = 1;
@@ -26,9 +27,30 @@ const fixtures = [
       x_1--;
       let y_2 = true;
       let z_3 = (x_1 ** 2);
-      console.log((x_1 !== 5));
-    `, // Updated to expect the deeply optimized boolean reduction!
+    `,
   },
+  {
+    name: "unary and logical operations",
+    source: `
+      note x = 1
+      key y = open
+      play (y && closed) || (x != 5)
+      play -x
+      play !y
+    `,
+    expected: dedent`
+      let x_1 = 1;
+      let y_2 = true;
+      console.log((x_1 !== 5));
+      console.log((-x_1));
+      console.log((!y_2));
+    `,
+  },
+];
+
+// -------- CONTROL FLOW --------
+
+const controlFlowFixtures = [
   {
     name: "if statements",
     source: `
@@ -77,7 +99,7 @@ const fixtures = [
         cadence
         x = x + 1
       cadence
-      encore 3 : play x cadence
+      encore 10 : play x cadence
       measure i from 1 to 10 : play i cadence
       note arr = [1, 2, 3]
       measure item in arr : play item cadence
@@ -93,7 +115,7 @@ const fixtures = [
       }
       x_1 = (x_1 + 1);
       }
-      for (let i_3 = 0; i_3 < 3; i_3++) {
+      for (let i_3 = 0; i_3 < 10; i_3++) {
       console.log(x_1);
       }
       for (let i_4 = 1; i_4 <= 10; i_4++) {
@@ -105,6 +127,11 @@ const fixtures = [
       }
     `,
   },
+];
+
+// -------- FUNCTIONS & STRUCTS --------
+
+const functionAndStructFixtures = [
   {
     name: "functions",
     source: `
@@ -135,23 +162,6 @@ const fixtures = [
     `,
   },
   {
-    name: "arrays and optionals",
-    source: `
-      note a = [open, closed, open]
-      note b = [10, 20, 30]
-      play a[1] || (b[0] < 88 ? closed : open)
-      note opt = ghost 5
-      note unwrap = opt ?? 10
-    `,
-    expected: dedent`
-      let a_1 = [true, false, true];
-      let b_2 = [10, 20, 30];
-      console.log((a_1[1] || (((b_2[0] < 88)) ? (false) : (true))));
-      let opt_3 = 5;
-      let unwrap_4 = (opt_3 ?? 10);
-    `,
-  },
-  {
     name: "structs",
     source: `
       chord Point : x : level y : level cadence
@@ -171,27 +181,26 @@ const fixtures = [
       }
     `,
   },
+];
+
+// -------- EXPRESSIONS & STANDARD LIBRARY --------
+
+const expressionFixtures = [
   {
-    name: "small",
+    name: "arrays and optionals",
     source: `
-      note x = 1
-      x sharp
-      x flat
-      key y = open
-      note z = x ^ 2
-      play (y && closed) || (x != 5)
-      play -x
-      play !y
+      note a = [open, closed, open]
+      note b = [10, 20, 30]
+      play a[1] || (b[0] < 88 ? closed : open)
+      note opt = ghost 5
+      note unwrap = opt ?? 10
     `,
     expected: dedent`
-      let x_1 = 1;
-      x_1++;
-      x_1--;
-      let y_2 = true;
-      let z_3 = (x_1 ** 2);
-      console.log((x_1 !== 5));
-      console.log((-x_1));
-      console.log((!y_2));
+      let a_1 = [true, false, true];
+      let b_2 = [10, 20, 30];
+      console.log((a_1[1] || (((b_2[0] < 88)) ? (false) : (true))));
+      let opt_3 = 5;
+      let unwrap_4 = (opt_3 ?? 10);
     `,
   },
   {
@@ -213,27 +222,83 @@ const fixtures = [
   },
 ];
 
-describe("The code generator", () => {
-  for (const fixture of fixtures) {
-    it(`produces expected JS output for the ${fixture.name} program`, () => {
-      // Re-added the optimizer so it runs the full gauntlet!
-      const actual = generate(optimize(analyze(parse(fixture.source, []))));
-      assert.deepEqual(actual, fixture.expected);
-    });
-  }
-  it("handles undefined nodes and throws on unknown node kinds", () => {
-    // Direct AST spoofing to hit the 'undefined' literal check
-    const spoofedAST = {
-      kind: "Program",
-      body: [undefined],
-    };
-    assert.equal(generate(spoofedAST), "undefined;");
+// -------- EDGE CASES --------
 
-    // Direct AST spoofing to hit the missing generator branch
-    const badAST = {
-      kind: "Program",
-      body: [{ kind: "UnknownNode" }],
-    };
-    assert.throws(() => generate(badAST), /No generator for UnknownNode/);
+const edgeCaseFixtures = [
+  {
+    name: "javascript keyword collisions",
+    source: `
+      note class = 1
+      note for = 2
+      note while = class + for
+      play while
+    `,
+    expected: dedent`
+      let class_1 = 1;
+      let for_2 = 2;
+      let while_3 = (class_1 + for_2);
+      console.log(while_3);
+    `,
+  },
+];
+
+describe("The Code Generator", () => {
+  describe("Core Statements & Declarations", () => {
+    for (const fixture of coreFixtures) {
+      it(`produces expected JS output for ${fixture.name}`, () => {
+        const actual = generate(optimize(analyze(parse(fixture.source, []))));
+        assert.deepEqual(actual, fixture.expected);
+      });
+    }
+  });
+
+  describe("Control Flow", () => {
+    for (const fixture of controlFlowFixtures) {
+      it(`produces expected JS output for ${fixture.name}`, () => {
+        const actual = generate(optimize(analyze(parse(fixture.source, []))));
+        assert.deepEqual(actual, fixture.expected);
+      });
+    }
+  });
+
+  describe("Functions & Structs", () => {
+    for (const fixture of functionAndStructFixtures) {
+      it(`produces expected JS output for ${fixture.name}`, () => {
+        const actual = generate(optimize(analyze(parse(fixture.source, []))));
+        assert.deepEqual(actual, fixture.expected);
+      });
+    }
+  });
+
+  describe("Expressions & Standard Library", () => {
+    for (const fixture of expressionFixtures) {
+      it(`produces expected JS output for ${fixture.name}`, () => {
+        const actual = generate(optimize(analyze(parse(fixture.source, []))));
+        assert.deepEqual(actual, fixture.expected);
+      });
+    }
+  });
+
+  describe("Edge Cases", () => {
+    for (const fixture of edgeCaseFixtures) {
+      it(`safely translates ${fixture.name}`, () => {
+        const actual = generate(optimize(analyze(parse(fixture.source, []))));
+        assert.deepEqual(actual, fixture.expected);
+      });
+    }
+
+    it("handles undefined nodes and throws on unknown node kinds", () => {
+      const spoofedAST = {
+        kind: "Program",
+        body: [undefined],
+      };
+      assert.equal(generate(spoofedAST), "undefined;");
+
+      const badAST = {
+        kind: "Program",
+        body: [{ kind: "UnknownNode" }],
+      };
+      assert.throws(() => generate(badAST), /No generator for UnknownNode/);
+    });
   });
 });

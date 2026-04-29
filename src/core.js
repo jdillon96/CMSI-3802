@@ -1,22 +1,10 @@
+// Defines the factory functions for building the Abstract Syntax Tree (AST).
+// Each function returns a lightweight, strongly-typed JSON object representing a node in the compiler pipeline.
+
+// -------- STRUCTURE & TYPES --------
+
 export function program(body) {
   return { kind: "Program", body };
-}
-
-export function variable(name, readOnly, type) {
-  return {
-    kind: "Variable",
-    name,
-    readOnly,
-    type,
-  };
-}
-
-export function varDecl(variable, initializer) {
-  return {
-    kind: "VariableDeclaration",
-    variable,
-    initializer,
-  };
 }
 
 export function typeDeclaration(kind, baseType) {
@@ -41,6 +29,27 @@ export function fieldDecl(name, type) {
     type,
   };
 }
+
+// -------- VARIABLES --------
+
+export function variable(name, readOnly, type) {
+  return {
+    kind: "Variable",
+    name,
+    readOnly,
+    type,
+  };
+}
+
+export function varDecl(variable, initializer) {
+  return {
+    kind: "VariableDeclaration",
+    variable,
+    initializer,
+  };
+}
+
+// -------- FUNCTIONS --------
 
 export function functionDecl(fun, body) {
   return {
@@ -67,6 +76,8 @@ export function functionCall(callee, args, type) {
     type,
   };
 }
+
+// -------- STATEMENTS & CONTROL FLOW --------
 
 export function playStmt(argument) {
   return {
@@ -99,6 +110,23 @@ export function ifStmt(test, consequent, alternate) {
     alternate,
   };
 }
+
+export function cutStmt() {
+  return { kind: "CutStatement" };
+}
+
+export function returnStmt(expression) {
+  return {
+    kind: "ReturnStatement",
+    expression,
+  };
+}
+
+export function shortReturnStmt() {
+  return { kind: "ShortReturnStatement" };
+}
+
+// -------- LOOPS --------
 
 export function vampStmt(test, body) {
   return {
@@ -135,20 +163,7 @@ export function measureInStmt(iterator, collection, body) {
   };
 }
 
-export function cutStmt() {
-  return { kind: "CutStatement" };
-}
-
-export function returnStmt(expression) {
-  return {
-    kind: "ReturnStatement",
-    expression,
-  };
-}
-
-export function shortReturnStmt() {
-  return { kind: "ShortReturnStatement" };
-}
+// -------- EXPRESSIONS --------
 
 export function binaryExp(left, operator, right, type) {
   return {
@@ -172,18 +187,24 @@ export function unaryExp(operator, argument, type) {
 export function arrayLiteral(elements, type) {
   return { kind: "ArrayLiteral", elements, type };
 }
+
 export function subscriptExp(array, index, type) {
   return { kind: "SubscriptExpression", array, index, type };
 }
+
 export function memberExp(object, field, type) {
   return { kind: "MemberExpression", object, field, type };
 }
+
 export function conditionalExp(test, consequent, alternate, type) {
   return { kind: "ConditionalExpression", test, consequent, alternate, type };
 }
+
 export function unwrapElseExp(optional, alternate, type) {
   return { kind: "UnwrapElseExpression", optional, alternate, type };
 }
+
+// -------- STANDARD LIBRARY --------
 
 export const standardLibrary = Object.freeze({
   sqrt: functionObject("sqrt", [variable("x", true, "level")], "level"),

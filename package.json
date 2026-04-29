@@ -14,7 +14,7 @@
     "url": "git+https://github.com/jdillon96/CMSI-3802.git"
   },
   "license": "ISC",
-  "author": "Jay Dillon",
+  "author": "Diego Cuadros, Jay Dillon, Westley Holmes, Jesus Lopez",
   "type": "module",
   "main": "index.js",
   "directories": {
