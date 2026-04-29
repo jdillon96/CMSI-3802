@@ -1,12 +1,12 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import parse from "../src/parser.js";
-import analyze from "../src/analyzer.js";
-import optimize from "../src/optimizer.js";
-import generate from "../src/generator.js";
+import { describe, it } from "node:test"
+import assert from "node:assert/strict"
+import parse from "../src/parser.js"
+import analyze from "../src/analyzer.js"
+import optimize from "../src/optimizer.js"
+import generate from "../src/generator.js"
 
 function dedent(s) {
-  return `${s}`.replace(/(?<=\n)\s+/g, "").trim();
+  return `${s}`.replace(/(?<=\n)\s+/g, "").trim()
 }
 
 // -------- CORE STATEMENTS & DECLARATIONS --------
@@ -46,7 +46,7 @@ const coreFixtures = [
       console.log((!y_2));
     `,
   },
-];
+]
 
 // -------- CONTROL FLOW --------
 
@@ -127,7 +127,7 @@ const controlFlowFixtures = [
       }
     `,
   },
-];
+]
 
 // -------- FUNCTIONS & STRUCTS --------
 
@@ -181,7 +181,7 @@ const functionAndStructFixtures = [
       }
     `,
   },
-];
+]
 
 // -------- EXPRESSIONS & STANDARD LIBRARY --------
 
@@ -220,7 +220,7 @@ const expressionFixtures = [
       console.log(Math.hypot(b_2, c_3));
     `,
   },
-];
+]
 
 // -------- EDGE CASES --------
 
@@ -240,65 +240,65 @@ const edgeCaseFixtures = [
       console.log(while_3);
     `,
   },
-];
+]
 
 describe("The Code Generator", () => {
   describe("Core Statements & Declarations", () => {
     for (const fixture of coreFixtures) {
       it(`produces expected JS output for ${fixture.name}`, () => {
-        const actual = generate(optimize(analyze(parse(fixture.source, []))));
-        assert.deepEqual(actual, fixture.expected);
-      });
+        const actual = generate(optimize(analyze(parse(fixture.source, []))))
+        assert.deepEqual(actual, fixture.expected)
+      })
     }
-  });
+  })
 
   describe("Control Flow", () => {
     for (const fixture of controlFlowFixtures) {
       it(`produces expected JS output for ${fixture.name}`, () => {
-        const actual = generate(optimize(analyze(parse(fixture.source, []))));
-        assert.deepEqual(actual, fixture.expected);
-      });
+        const actual = generate(optimize(analyze(parse(fixture.source, []))))
+        assert.deepEqual(actual, fixture.expected)
+      })
     }
-  });
+  })
 
   describe("Functions & Structs", () => {
     for (const fixture of functionAndStructFixtures) {
       it(`produces expected JS output for ${fixture.name}`, () => {
-        const actual = generate(optimize(analyze(parse(fixture.source, []))));
-        assert.deepEqual(actual, fixture.expected);
-      });
+        const actual = generate(optimize(analyze(parse(fixture.source, []))))
+        assert.deepEqual(actual, fixture.expected)
+      })
     }
-  });
+  })
 
   describe("Expressions & Standard Library", () => {
     for (const fixture of expressionFixtures) {
       it(`produces expected JS output for ${fixture.name}`, () => {
-        const actual = generate(optimize(analyze(parse(fixture.source, []))));
-        assert.deepEqual(actual, fixture.expected);
-      });
+        const actual = generate(optimize(analyze(parse(fixture.source, []))))
+        assert.deepEqual(actual, fixture.expected)
+      })
     }
-  });
+  })
 
   describe("Edge Cases", () => {
     for (const fixture of edgeCaseFixtures) {
       it(`safely translates ${fixture.name}`, () => {
-        const actual = generate(optimize(analyze(parse(fixture.source, []))));
-        assert.deepEqual(actual, fixture.expected);
-      });
+        const actual = generate(optimize(analyze(parse(fixture.source, []))))
+        assert.deepEqual(actual, fixture.expected)
+      })
     }
 
     it("handles undefined nodes and throws on unknown node kinds", () => {
       const spoofedAST = {
         kind: "Program",
         body: [undefined],
-      };
-      assert.equal(generate(spoofedAST), "undefined;");
+      }
+      assert.equal(generate(spoofedAST), "undefined;")
 
       const badAST = {
         kind: "Program",
         body: [{ kind: "UnknownNode" }],
-      };
-      assert.throws(() => generate(badAST), /No generator for UnknownNode/);
-    });
-  });
-});
+      }
+      assert.throws(() => generate(badAST), /No generator for UnknownNode/)
+    })
+  })
+})

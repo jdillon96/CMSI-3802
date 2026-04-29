@@ -39,15 +39,15 @@ Every Groovy program can be authored and performed as a MIDI file. The preproces
 
 The channel a note is placed on determines what kind of character it encodes. Pitch selects the specific character within that category via modulo arithmetic.
 
-| Channel | Encodes                                               | Selection                                        |
-| ------- | ----------------------------------------------------- | ------------------------------------------------ |
-| 1       | Groovy keywords (`note`, `compose`, `cue`, `vamp`, …) | `KEYWORDS[pitch % 28]`                           |
-| 2       | Letters (a–z, A–Z)                                    | `ALPHABET[pitch % 52]`                           |
-| 3       | Digits and math operators (`0–9 . + - * / % ^ =`)     | `MATH_CHARS[pitch % 18]`                         |
-| 4       | Punctuation (`{ } ( ) [ ] , ; : < >`)                 | `SPECIALS[pitch % 11]`                           |
-| 5       | Explicit whitespace                                   | `pitch % 3` → space / tab / newline              |
-| 6       | Comments                                              | Dropped entirely — play whatever you want here   |
-| 7–16    | Unicode                                               | `(channel − 7) × 16384 + pitch × 128 + velocity` |
+| Channel | Encodes                                                               | Selection                                        |
+| ------- | --------------------------------------------------------------------- | ------------------------------------------------ |
+| 1       | Groovy keywords (`note`, `compose`, `cue`, `vamp`, …)                 | `KEYWORDS[pitch % 28]`                           |
+| 2       | Letters (a–z, A–Z)                                                    | `ALPHABET[pitch % 52]`                           |
+| 3       | Digits and math operators (`0–9 . + - * / % ^ =`)                     | `MATH_CHARS[pitch % 18]`                         |
+| 4       | Punctuation ({ } ( ) [ ] , ; : < > ! ? & &#124; " ' \ \_ @ # $ ~ \` ) | `SPECIALS[pitch % 24]`                           |
+| 5       | Explicit whitespace                                                   | `pitch % 3` → space / tab / newline              |
+| 6       | Comments                                                              | Dropped entirely — play whatever you want here   |
+| 7–16    | Unicode                                                               | `(channel − 7) × 16384 + pitch × 128 + velocity` |
 
 ### Implicit Whitespace from Timing
 

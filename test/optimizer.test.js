@@ -1,22 +1,18 @@
-import { describe, it } from "node:test";
-import assert from "node:assert/strict";
-import optimize from "../src/optimizer.js";
-import * as core from "../src/core.js";
+import { describe, it } from "node:test"
+import assert from "node:assert/strict"
+import optimize from "../src/optimizer.js"
+import * as core from "../src/core.js"
 
-const x = core.variable("x", false, "level");
-const y = core.variable("y", false, "level");
-const arr = core.variable(
-  "arr",
-  false,
-  core.typeDeclaration("ArrayType", "level"),
-);
-const f = core.functionObject("f", [x], "level");
+const x = core.variable("x", false, "level")
+const y = core.variable("y", false, "level")
+const arr = core.variable("arr", false, core.typeDeclaration("ArrayType", "level"))
+const f = core.functionObject("f", [x], "level")
 
-const xpp = core.bumpStmt(x, "sharp");
-const playX = core.playStmt(x);
+const xpp = core.bumpStmt(x, "sharp")
+const playX = core.playStmt(x)
 
-const bin = (l, op, r) => core.binaryExp(l, op, r, "unknown");
-const un = (op, a) => core.unaryExp(op, a, "unknown");
+const bin = (l, op, r) => core.binaryExp(l, op, r, "unknown")
+const un = (op, a) => core.unaryExp(op, a, "unknown")
 
 // -------- MATH & LOGIC FOLDING --------
 
@@ -28,13 +24,9 @@ const mathFolding = [
   ["folds **", bin(5, "**", 8), 390625],
   ["folds ^", bin(5, "^", 8), 390625],
   ["folds %", bin(10, "%", 3), 1],
-  [
-    "folds deep mathematical trees",
-    bin(bin(1, "+", 1), "+", bin(2, "*", 2)),
-    6,
-  ],
+  ["folds deep mathematical trees", bin(bin(1, "+", 1), "+", bin(2, "*", 2)), 6],
   ["handles division by zero", bin(5, "/", 0), Infinity],
-];
+]
 
 const comparisonFolding = [
   ["folds <", bin(5, "<", 8), true],
@@ -43,7 +35,7 @@ const comparisonFolding = [
   ["folds !=", bin(5, "!=", 8), true],
   ["folds >=", bin(5, ">=", 8), false],
   ["folds >", bin(5, ">", 8), false],
-];
+]
 
 const strengthReductions = [
   ["optimizes +0", bin(x, "+", 0), x],
@@ -59,14 +51,14 @@ const strengthReductions = [
   ["optimizes 1^", bin(1, "^", x), 1],
   ["optimizes **0", bin(x, "**", 0), 1],
   ["optimizes ^0", bin(x, "^", 0), 1],
-];
+]
 
 const unaryFolding = [
   ["folds unary -", un("-", 8), -8],
   ["folds unary !", un("!", true), false],
   ["leaves boolean variables alone", un("!", y), un("!", y)],
   ["leaves optional ghost alone", un("ghost", 5), un("ghost", 5)],
-];
+]
 
 const logicalReductions = [
   ["removes left false from ||", bin(false, "||", x), x],
@@ -79,7 +71,7 @@ const logicalReductions = [
   ["removes left false from &&", bin(false, "&&", x), false],
   ["removes right false from &&", bin(x, "&&", false), false],
   ["removes false && false", bin(false, "&&", false), false],
-];
+]
 
 // -------- CONTROL FLOW & STATEMENTS --------
 
@@ -89,24 +81,12 @@ const statementOptimizations = [
     core.program([core.assignStmt(x, x), xpp]),
     core.program([xpp]),
   ],
-  [
-    "removes x=x at end",
-    core.program([xpp, core.assignStmt(x, x)]),
-    core.program([xpp]),
-  ],
-  [
-    "leaves non-matching assign alone",
-    core.assignStmt(x, y),
-    core.assignStmt(x, y),
-  ],
+  ["removes x=x at end", core.program([xpp, core.assignStmt(x, x)]), core.program([xpp])],
+  ["leaves non-matching assign alone", core.assignStmt(x, y), core.assignStmt(x, y)],
   ["optimizes if-true", core.ifStmt(true, [xpp], []), [xpp]],
   ["optimizes if-false", core.ifStmt(false, [xpp], [playX]), [playX]],
   ["optimizes if-false no alternate", core.ifStmt(false, [xpp], []), []],
-  [
-    "leaves if pass-through",
-    core.ifStmt(x, [xpp], [xpp]),
-    core.ifStmt(x, [xpp], [xpp]),
-  ],
+  ["leaves if pass-through", core.ifStmt(x, [xpp], [xpp]), core.ifStmt(x, [xpp], [xpp])],
   ["removes empty if block with pure test", core.ifStmt(x, [], []), []],
   ["removes empty if block with numeric test", core.ifStmt(1, [], []), []],
   [
@@ -129,22 +109,14 @@ const statementOptimizations = [
     core.program([core.shortReturnStmt(), xpp]),
     core.program([core.shortReturnStmt()]),
   ],
-];
+]
 
 const loopOptimizations = [
   ["optimizes vamp-false", core.vampStmt(false, [xpp]), []],
-  [
-    "leaves vamp-true alone",
-    core.vampStmt(true, [xpp]),
-    core.vampStmt(true, [xpp]),
-  ],
+  ["leaves vamp-true alone", core.vampStmt(true, [xpp]), core.vampStmt(true, [xpp])],
   ["removes empty vamp loop with pure test", core.vampStmt(x, []), []],
   ["removes empty vamp loop with numeric test", core.vampStmt(1, []), []],
-  [
-    "removes empty vamp loop with true boolean test",
-    core.vampStmt(true, []),
-    [],
-  ],
+  ["removes empty vamp loop with true boolean test", core.vampStmt(true, []), []],
   ["optimizes encore-0", core.encoreStmt(0, [xpp]), []],
   [
     "leaves encore pass-through",
@@ -152,21 +124,13 @@ const loopOptimizations = [
     core.encoreStmt(20, [xpp]),
   ],
   ["removes empty encore loop", core.encoreStmt(5, []), []],
-  [
-    "unrolls small encore loops",
-    core.encoreStmt(3, [playX]),
-    [playX, playX, playX],
-  ],
+  ["unrolls small encore loops", core.encoreStmt(3, [playX]), [playX, playX, playX]],
   [
     "leaves large encore loops alone",
     core.encoreStmt(100, [playX]),
     core.encoreStmt(100, [playX]),
   ],
-  [
-    "optimizes measure-range low > high",
-    core.measureRangeStmt(x, 10, 5, [xpp]),
-    [],
-  ],
+  ["optimizes measure-range low > high", core.measureRangeStmt(x, 10, 5, [xpp]), []],
   [
     "leaves measure-range valid",
     core.measureRangeStmt(x, bin(1, "+", 1), bin(3, "+", 3), [xpp]),
@@ -179,12 +143,10 @@ const loopOptimizations = [
   ],
   [
     "leaves measure-in valid",
-    core.measureInStmt(x, core.arrayLiteral([bin(1, "+", 1)], "ArrayType"), [
-      xpp,
-    ]),
+    core.measureInStmt(x, core.arrayLiteral([bin(1, "+", 1)], "ArrayType"), [xpp]),
     core.measureInStmt(x, core.arrayLiteral([2], "ArrayType"), [xpp]),
   ],
-];
+]
 
 // -------- EXPRESSIONS & STANDARD LIBRARY --------
 
@@ -223,11 +185,7 @@ const expressionPassThroughs = [
   ],
   ["optimizes in play", core.playStmt(bin(1, "+", 1)), core.playStmt(2)],
   ["optimizes in return", core.returnStmt(bin(1, "+", 1)), core.returnStmt(2)],
-  [
-    "optimizes in var decl",
-    core.varDecl(x, bin(1, "+", 1)),
-    core.varDecl(x, 2),
-  ],
+  ["optimizes in var decl", core.varDecl(x, bin(1, "+", 1)), core.varDecl(x, 2)],
   [
     "optimizes in array literal",
     core.arrayLiteral([bin(1, "+", 1)], "ArrayType"),
@@ -240,19 +198,11 @@ const expressionPassThroughs = [
   ],
   ["leaves cut alone", core.cutStmt(), core.cutStmt()],
   ["leaves short return alone", core.shortReturnStmt(), core.shortReturnStmt()],
-];
+]
 
 const stdlibFolding = [
-  [
-    "folds sqrt",
-    core.functionCall(core.standardLibrary.sqrt, [16], "level"),
-    4,
-  ],
-  [
-    "folds hypot",
-    core.functionCall(core.standardLibrary.hypot, [3, 4], "level"),
-    5,
-  ],
+  ["folds sqrt", core.functionCall(core.standardLibrary.sqrt, [16], "level"), 4],
+  ["folds hypot", core.functionCall(core.standardLibrary.hypot, [3, 4], "level"), 5],
   [
     "leaves sqrt alone with variables",
     core.functionCall(core.standardLibrary.sqrt, [x], "level"),
@@ -263,7 +213,7 @@ const stdlibFolding = [
     core.functionCall(core.standardLibrary.hypot, [x, 4], "level"),
     core.functionCall(core.standardLibrary.hypot, [x, 4], "level"),
   ],
-];
+]
 
 describe("The Optimizer", () => {
   describe("Math & Logic Folding", () => {
@@ -273,50 +223,50 @@ describe("The Optimizer", () => {
       "Strength Reductions": strengthReductions,
       "Unary Folding": unaryFolding,
       "Logical Reductions": logicalReductions,
-    };
+    }
 
     for (const [category, fixtures] of Object.entries(mathLogicCategories)) {
       describe(category, () => {
         for (const [scenario, before, after] of fixtures) {
           it(`${scenario}`, () => {
-            assert.deepEqual(optimize(before), after);
-          });
+            assert.deepEqual(optimize(before), after)
+          })
         }
-      });
+      })
     }
-  });
+  })
 
   describe("Control Flow & Statements", () => {
     const controlFlowCategories = {
       "Statement Optimizations": statementOptimizations,
       "Loop Optimizations": loopOptimizations,
-    };
+    }
 
     for (const [category, fixtures] of Object.entries(controlFlowCategories)) {
       describe(category, () => {
         for (const [scenario, before, after] of fixtures) {
           it(`${scenario}`, () => {
-            assert.deepEqual(optimize(before), after);
-          });
+            assert.deepEqual(optimize(before), after)
+          })
         }
-      });
+      })
     }
-  });
+  })
 
   describe("Expressions & Standard Library", () => {
     const expressionCategories = {
       "Expression Pass-Throughs": expressionPassThroughs,
       "Standard Library Folding": stdlibFolding,
-    };
+    }
 
     for (const [category, fixtures] of Object.entries(expressionCategories)) {
       describe(category, () => {
         for (const [scenario, before, after] of fixtures) {
           it(`${scenario}`, () => {
-            assert.deepEqual(optimize(before), after);
-          });
+            assert.deepEqual(optimize(before), after)
+          })
         }
-      });
+      })
     }
-  });
-});
+  })
+})
