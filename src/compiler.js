@@ -18,7 +18,7 @@ export default function compile(source, outputType, sourceMap = []) {
   const match = parse(source, sourceMap)
   if (outputType === "parsed") return "Syntax is ok"
 
-  const analyzed = analyze(match)
+  const analyzed = analyze(match, sourceMap)
   if (outputType === "analyzed") return analyzed
 
   const optimized = optimize(analyzed)

@@ -77,6 +77,15 @@ export function functionCall(callee, args, type) {
   }
 }
 
+export function constructorCall(callee, args, type) {
+  return {
+    kind: "ConstructorCall",
+    callee,
+    arguments: args,
+    type,
+  }
+}
+
 // -------- STATEMENTS & CONTROL FLOW --------
 
 export function playStmt(argument) {

@@ -5,13 +5,13 @@
   "keywords": [
     "lang"
   ],
-  "homepage": "https://github.com/jdillon96/CMSI-3802#readme",
+  "homepage": "https://github.com/jdillon96/Groovy#readme",
   "bugs": {
-    "url": "https://github.com/jdillon96/CMSI-3802/issues"
+    "url": "https://github.com/jdillon96/Groovy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jdillon96/CMSI-3802.git"
+    "url": "git+https://github.com/jdillon96/Groovy.git"
   },
   "license": "ISC",
   "author": "Diego Cuadros, Jay Dillon, Westley Holmes, Jesus Lopez",
@@ -23,7 +23,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "c8 node --test test/**/*.test.js"
+    "test": "c8 node --test"
   },
   "dependencies": {
     "@tonejs/midi": "^2.0.28",

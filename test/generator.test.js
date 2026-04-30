@@ -6,7 +6,7 @@ import optimize from "../src/optimizer.js"
 import generate from "../src/generator.js"
 
 function dedent(s) {
-  return `${s}`.replace(/(?<=\n)\s+/g, "").trim()
+  return `${s}`.replaceAll(/(?<=\n)\s+/g, "").trim()
 }
 
 // -------- CORE STATEMENTS & DECLARATIONS --------
@@ -162,12 +162,14 @@ const functionAndStructFixtures = [
     `,
   },
   {
-    name: "structs",
+    name: "structs and instantiation",
     source: `
       chord Point : x : level y : level cadence
       compose getX(pt : Point) :
         play pt.x
       cadence
+      note p = Point(3, 4)
+      getX(p)
     `,
     expected: dedent`
       class Point {
@@ -179,6 +181,8 @@ const functionAndStructFixtures = [
       function getX_1(pt_2) {
       console.log(pt_2.x);
       }
+      let p_3 = new Point(3, 4);
+      getX_1(p_3);
     `,
   },
 ]

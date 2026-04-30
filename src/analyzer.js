@@ -5,6 +5,8 @@ import * as core from "./core.js"
 
 // -------- SCOPE TRACKING --------
 
+let currentSourceMap = []
+
 class Context {
   constructor(parent = null) {
     this.parent = parent
@@ -24,13 +26,27 @@ class Context {
 
 function error(message, at) {
   const prefix = at.getLineAndColumnMessage()
-  throw new Error(`${prefix}${message}`)
+  let timeInfo = ""
+
+  if (currentSourceMap.length > 0 && at.startIdx !== undefined) {
+    // Find the closest MIDI note that occurred at or right before this character
+    const mapping = currentSourceMap
+      .slice()
+      .reverse()
+      .find(m => m.index <= at.startIdx)
+
+    if (mapping?.time !== undefined && mapping.time !== "N/A") {
+      timeInfo = `\x1b[36m[Time: ${mapping.time}s]\x1b[0m `
+    }
+  }
+
+  throw new Error(`${prefix}${timeInfo}${message}`)
 }
 
 // -------- TYPE VALIDATION HELPERS --------
 
 function typeOf(value) {
-  if (typeof value === "string") return value
+  if (typeof value === "string") return "lyric"
   if (typeof value === "number") return "level"
   if (typeof value === "boolean") return "gate"
   return value?.type ?? "unknown"
@@ -84,7 +100,8 @@ function validateSameType(target, source, at) {
 
 // -------- SEMANTIC ANALYZER --------
 
-export default function translate(match) {
+export default function translate(match, sourceMap = []) {
+  currentSourceMap = sourceMap
   let context = new Context()
 
   for (const [name, entity] of Object.entries(core.standardLibrary)) {
@@ -97,6 +114,7 @@ export default function translate(match) {
     _iter(...children) {
       return children.map(c => c.translate())
     },
+
     _terminal() {
       return this.sourceString
     },
@@ -104,6 +122,7 @@ export default function translate(match) {
     Program(statements) {
       return core.program(statements.children.map(s => s.translate()))
     },
+
     Block(statements) {
       return statements.children.map(s => s.translate())
     },
@@ -183,9 +202,11 @@ export default function translate(match) {
     Statement_break(_cut) {
       return core.cutStmt()
     },
+
     Statement_return(_fin, expression) {
       return core.returnStmt(expression.translate())
     },
+
     Statement_shortreturn(_fin) {
       return core.shortReturnStmt()
     },
@@ -282,12 +303,15 @@ export default function translate(match) {
     Type_primitive(prim) {
       return prim.sourceString
     },
+
     Type_array(_open, type, _close) {
       return core.typeDeclaration("ArrayType", type.translate())
     },
+
     Type_optional(_ghost, type) {
       return core.typeDeclaration("OptionalType", type.translate())
     },
+
     Type_id(id) {
       return id.sourceString
     },
@@ -382,34 +406,55 @@ export default function translate(match) {
     Exp6_unary(op, expression) {
       const x = expression.translate()
       const operator = op.sourceString
-      if (operator === "-") validateLevel(x, op.source)
-      if (operator === "!") validateGate(x, op.source)
-      const returnType =
-        operator === "!"
-          ? "gate"
-          : operator === "-"
-            ? "level"
-            : core.typeDeclaration("OptionalType", typeOf(x))
+      let returnType
+
+      if (operator === "-") {
+        validateLevel(x, op.source)
+        returnType = "level"
+      } else if (operator === "!") {
+        validateGate(x, op.source)
+        returnType = "gate"
+      } else {
+        returnType = core.typeDeclaration("OptionalType", typeOf(x))
+      }
+
       return core.unaryExp(operator, x, returnType)
     },
 
     Exp7_call(calleeExp, _open, args, _close) {
       const callee = calleeExp.translate()
+      const isFunction = callee.kind === "FunctionObject"
+      const isStruct = callee.kind === "StructDeclaration"
+
       validate(
-        callee.kind === "FunctionObject",
-        "Attempted to call a non-composition",
+        isFunction || isStruct,
+        "Attempted to call a non-composition or non-chord",
         calleeExp.source,
       )
+
       const argValues = args.asIteration().children.map(arg => arg.translate())
-      validate(
-        argValues.length === callee.params.length,
-        `Expected ${callee.params.length} inputs, got ${argValues.length}`,
-        args.source,
-      )
-      for (let i = 0; i < argValues.length; i++) {
-        validateSameType(callee.params[i], argValues[i], args.source)
+
+      if (isFunction) {
+        validate(
+          argValues.length === callee.params.length,
+          `Expected ${callee.params.length} inputs, got ${argValues.length}`,
+          args.source,
+        )
+        for (let i = 0; i < argValues.length; i++) {
+          validateSameType(callee.params[i], argValues[i], args.source)
+        }
+        return core.functionCall(callee, argValues, callee.returnType)
+      } else {
+        validate(
+          argValues.length === callee.fields.length,
+          `Expected ${callee.fields.length} inputs, got ${argValues.length}`,
+          args.source,
+        )
+        for (let i = 0; i < argValues.length; i++) {
+          validateSameType(callee.fields[i], argValues[i], args.source)
+        }
+        return core.constructorCall(callee, argValues, callee.name)
       }
-      return core.functionCall(callee, argValues, callee.returnType)
     },
 
     Exp7_subscript(arrayExp, _open, indexExp, _close) {
@@ -474,24 +519,25 @@ export default function translate(match) {
     Exp7_parens(_open, expression, _close) {
       return expression.translate()
     },
+
     Exp7_id(id) {
       return context.get(id.sourceString, id.source)
     },
 
     // -------- LITERALS & TERMINALS --------
 
-    intlit(_digits) {
+    numlit(_whole, _dot, _fraction, _e, _sign, _exponent) {
       return Number(this.sourceString)
     },
-    floatlit(_whole, _dot, _fraction, _e, _sign, _exp) {
-      return Number(this.sourceString)
-    },
+
     open(_) {
       return true
     },
+
     closed(_) {
       return false
     },
+
     stringlit(_openQuote, chars, _closeQuote) {
       return chars.sourceString
     },

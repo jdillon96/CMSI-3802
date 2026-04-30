@@ -4,8 +4,8 @@
 // Uses a greedy tokenizer to match strings to specific MIDI channels,
 // with a base-128 mathematical fallback for arbitrary Unicode characters.
 
-import fs from "fs"
-import path from "path"
+import fs from "node:fs"
+import path from "node:path"
 import MidiWriter from "midi-writer-js"
 import { REVERSE_MAP } from "./preProcessing.js"
 
@@ -74,13 +74,24 @@ export function generateMidi(sourceCode, outputPath) {
 
 // -------- CLI --------
 
+const help = `Groovy Text-to-MIDI Converter
+
+Usage: node src/textToMidi.js <filename>
+
+The <filename> must be a plain-text .groovy file containing your source code.
+The converter will generate a playable .mid file in the same directory, 
+using channel routing and timing to encode your syntax.
+
+NOTE: files that may contain errors WILL still be converted. 
+`
+
 /* c8 ignore start */
-const isCLI = process.argv[1] && process.argv[1].endsWith("textToMidi.js")
+const isCLI = process.argv[1]?.endsWith("textToMidi.js")
 
 if (isCLI) {
   if (process.argv.length !== 3) {
-    console.error("Usage: node src/textToMidi.js <file.groovy>")
-    process.exit(1)
+    console.log(help)
+    process.exit(2)
   }
 
   const inputFile = process.argv[2]
