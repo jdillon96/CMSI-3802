@@ -2,11 +2,11 @@
 key world = "gonna roll me"
 note sharpestTool = closed
 
-compose getYourGameOn(isStar: gate, hasMoney: gate) -> lyric :
-  cue isStar == open && hasMoney == open :
+compose getYourGameOn(isStar: gate, hasMoney: gate) -> lyric:
+  cue isStar == open && hasMoney == open:
     play "Hey now, you're an All Star!"
     play "Get your show on, get paid."
-  alt isStar == open :
+  alt isStar == open:
     play "Go play."
   cadence
   
