@@ -244,7 +244,7 @@ note active = open
 
 ```javascript
 let score_1 = 100
-let maxScore_2 = 999
+const maxScore_2 = 999
 let name_3 = "Alice"
 let active_4 = true
 ```
