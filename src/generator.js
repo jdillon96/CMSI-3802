@@ -43,7 +43,8 @@ export default function generate(program) {
     // -------- STRUCTURE & TYPES --------
 
     VariableDeclaration(d) {
-      output.push(`let ${gen(d.variable)} = ${gen(d.initializer)};`)
+      const keyword = d.variable.readOnly ? "const" : "let"
+      output.push(`${keyword} ${gen(d.variable)} = ${gen(d.initializer)};`)
     },
 
     Variable(v) {

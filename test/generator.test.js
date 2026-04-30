@@ -25,7 +25,7 @@ const coreFixtures = [
       let x_1 = 1;
       x_1++;
       x_1--;
-      let y_2 = true;
+      const y_2 = true;
       let z_3 = (x_1 ** 2);
     `,
   },
@@ -40,7 +40,7 @@ const coreFixtures = [
     `,
     expected: dedent`
       let x_1 = 1;
-      let y_2 = true;
+      const y_2 = true;
       console.log((x_1 !== 5));
       console.log((-x_1));
       console.log((!y_2));
