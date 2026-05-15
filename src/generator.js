@@ -43,20 +43,24 @@ export default function generate(program) {
     // -------- STRUCTURE & TYPES --------
 
     VariableDeclaration(d) {
-      output.push(`let ${gen(d.variable)} = ${gen(d.initializer)};`)
+      const keyword = d.variable.readOnly ? "const" : "let"
+      output.push(`${keyword} ${gen(d.variable)} = ${gen(d.initializer)};`)
     },
+
     Variable(v) {
       return targetName(v)
     },
+
     StructDeclaration(d) {
-      output.push(`class ${d.name} {`)
       const fieldNames = d.fields.map(f => f.name)
-      output.push(`constructor(${fieldNames.join(", ")}) {`)
-      for (let name of fieldNames) {
-        output.push(`this.${name} = ${name};`)
-      }
-      output.push("}")
-      output.push("}")
+
+      output.push(
+        `class ${d.name} {`,
+        `constructor(${fieldNames.join(", ")}) {`,
+        ...fieldNames.map(name => `this.${name} = ${name};`),
+        "}",
+        "}",
+      )
     },
 
     // -------- FUNCTIONS --------
@@ -68,9 +72,11 @@ export default function generate(program) {
       generateBlock(d.body)
       output.push("}")
     },
+
     FunctionObject(f) {
       return targetName(f)
     },
+
     FunctionCall(c) {
       if (c.callee === core.standardLibrary.sqrt)
         return `Math.sqrt(${gen(c.arguments[0])})`
@@ -79,27 +85,37 @@ export default function generate(program) {
       return `${gen(c.callee)}(${c.arguments.map(gen).join(", ")})`
     },
 
+    ConstructorCall(c) {
+      return `new ${c.callee.name}(${c.arguments.map(gen).join(", ")})`
+    },
+
     // -------- STATEMENTS & CONTROL FLOW --------
 
     PlayStatement(s) {
       output.push(`console.log(${gen(s.argument)});`)
     },
+
     AssignStatement(s) {
       output.push(`${gen(s.target)} = ${gen(s.source)};`)
     },
+
     BumpStatement(s) {
       const op = s.operator === "sharp" ? "++" : "--"
       output.push(`${gen(s.variable)}${op};`)
     },
+
     CutStatement(s) {
       output.push("break;")
     },
+
     ReturnStatement(s) {
       output.push(`return ${gen(s.expression)};`)
     },
+
     ShortReturnStatement(s) {
       output.push("return;")
     },
+
     IfStatement(s) {
       output.push(`if (${gen(s.test)}) {`)
       generateBlock(s.consequent)
@@ -125,6 +141,7 @@ export default function generate(program) {
       generateBlock(s.body)
       output.push("}")
     },
+
     EncoreStatement(s) {
       // Hidden counter for JS loop
       const i = targetName({ name: "i" })
@@ -132,12 +149,14 @@ export default function generate(program) {
       generateBlock(s.body)
       output.push("}")
     },
+
     MeasureRangeStatement(s) {
       const i = gen(s.iterator)
       output.push(`for (let ${i} = ${gen(s.low)}; ${i} <= ${gen(s.high)}; ${i}++) {`)
       generateBlock(s.body)
       output.push("}")
     },
+
     MeasureInStatement(s) {
       output.push(`for (let ${gen(s.iterator)} of ${gen(s.collection)}) {`)
       generateBlock(s.body)
@@ -149,23 +168,29 @@ export default function generate(program) {
     ConditionalExpression(e) {
       return `((${gen(e.test)}) ? (${gen(e.consequent)}) : (${gen(e.alternate)}))`
     },
+
     UnwrapElseExpression(e) {
       return `(${gen(e.optional)} ?? ${gen(e.alternate)})`
     },
+
     BinaryExpression(e) {
       const op = { "==": "===", "!=": "!==" }[e.operator] ?? e.operator
       return `(${gen(e.left)} ${op} ${gen(e.right)})`
     },
+
     UnaryExpression(e) {
       if (e.operator === "ghost") return gen(e.argument)
       return `(${e.operator}${gen(e.argument)})`
     },
+
     ArrayLiteral(e) {
       return `[${e.elements.map(gen).join(", ")}]`
     },
+
     SubscriptExpression(e) {
       return `${gen(e.array)}[${gen(e.index)}]`
     },
+
     MemberExpression(e) {
       return `${gen(e.object)}.${e.field}`
     },

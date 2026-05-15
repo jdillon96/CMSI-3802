@@ -3,7 +3,7 @@
 
 import pkg from "@tonejs/midi"
 const { Midi } = pkg
-import fs from "fs"
+import fs from "node:fs"
 
 // -------- DICTIONARIES & MAPPING --------
 
@@ -46,7 +46,7 @@ export const GROOVY_CHANNELS = {
 export const REVERSE_MAP = new Map()
 
 for (const [channelStr, items] of Object.entries(GROOVY_CHANNELS)) {
-  const channel = parseInt(channelStr)
+  const channel = Number.parseInt(channelStr)
   const len = items.length
 
   for (let i = 0; i < len; i++) {
@@ -94,7 +94,7 @@ export function processMidi(filePath) {
 
     if (lastNoteEndTime > 0) {
       let spaceChar = ""
-      if (gap >= 1.0 && gap < 2.5) spaceChar = "\t"
+      if (gap >= 1 && gap < 2.5) spaceChar = "\t"
       else if (gap >= 2.5) spaceChar = "\n"
       else if (gap >= 0.2) spaceChar = " "
 

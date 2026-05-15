@@ -39,15 +39,15 @@ Every Groovy program can be authored and performed as a MIDI file. The preproces
 
 The channel a note is placed on determines what kind of character it encodes. Pitch selects the specific character within that category via modulo arithmetic.
 
-| Channel | Encodes                                                               | Selection                                        |
-| ------- | --------------------------------------------------------------------- | ------------------------------------------------ |
-| 1       | Groovy keywords (`note`, `compose`, `cue`, `vamp`, …)                 | `KEYWORDS[pitch % 28]`                           |
-| 2       | Letters (a–z, A–Z)                                                    | `ALPHABET[pitch % 52]`                           |
-| 3       | Digits and math operators (`0–9 . + - * / % ^ =`)                     | `MATH_CHARS[pitch % 18]`                         |
-| 4       | Punctuation (<code>{ } ( ) [ ] , ; : < > ! ? & &#124; " ' \ _ @ # $ ~ `</code>) | `SPECIALS[pitch % 24]` |
-| 5       | Explicit whitespace                                                   | `pitch % 3` → space / tab / newline              |
-| 6       | Comments                                                              | Dropped entirely — play whatever you want here   |
-| 7–16    | Unicode                                                               | `(channel − 7) × 16384 + pitch × 128 + velocity` |
+| Channel | Encodes                                                                          | Selection                                        |
+| ------- | -------------------------------------------------------------------------------- | ------------------------------------------------ |
+| 1       | Groovy keywords (`note`, `compose`, `cue`, `vamp`, …)                            | `KEYWORDS[pitch % 28]`                           |
+| 2       | Letters (a–z, A–Z)                                                               | `ALPHABET[pitch % 52]`                           |
+| 3       | Digits and math operators (`0–9 . + - * / % ^ =`)                                | `MATH_CHARS[pitch % 18]`                         |
+| 4       | Punctuation (<code>{ } ( ) [ ] , ; : < > ! ? & &#124; " ' \ \_ @ # $ ~ `</code>) | `SPECIALS[pitch % 24]`                           |
+| 5       | Explicit whitespace                                                              | `pitch % 3` → space / tab / newline              |
+| 6       | Comments                                                                         | Dropped entirely — play whatever you want here   |
+| 7–16    | Unicode                                                                          | `(channel − 7) × 16384 + pitch × 128 + velocity` |
 
 ### Implicit Whitespace from Timing
 
@@ -80,6 +80,49 @@ Groovy also has a plain text syntax if you'd rather type than compose. Every con
 The five primitive types are `level` (number), `lyric` (string), `gate` (boolean), `silence` (void), and `noise` (any). Types can be made optional with `ghost`.
 
 Groovy can also be translated from this text representation into MIDI files via `textToMidi.js`, allowing users to hear what their code would sound like!
+
+---
+
+## How to Run
+
+Groovy provides two main command-line tools to compile your code and generate your musical files.
+
+### 1. The Groovy Compiler (`groovy.js`)
+
+The main command-line interface for the Groovy compiler handles file reading, MIDI preprocessing, and routing your code through the compiler pipeline.
+
+**Usage:**
+
+```bash
+node src/groovy.js <filename> <outputType>
+```
+
+- **`<filename>`:** The compiler accepts plain text `.groovy` files, as well as binary `.mid` or `.midi` files.
+- **`<outputType>`:** You must specify exactly what part of the compiler pipeline you want to see. Choose one of the following:
+  - `parsed`: Confirms the musical syntax is valid.
+  - `analyzed`: Shows the validated Abstract Syntax Tree (AST).
+  - `optimized`: Shows the AST after optimization.
+  - `js`: Spits out the executable JavaScript translation.
+
+### 2. Text-to-MIDI Converter (`textToMidi.js`)
+
+If you want to hear what your written code sounds like, you can translate Groovy source code text into binary MIDI files.
+
+**Usage:**
+
+```bash
+node src/textToMidi.js <filename>
+```
+
+- The `<filename>` must be a plain-text `.groovy` file containing your source code.
+- The converter will generate a playable `.mid` file in the same directory, using channel routing and timing to encode your syntax.
+- **Note:** Files that may contain errors WILL still be converted.
+
+---
+
+## Grammar
+
+[Groovy Grammar (groovy.ohm)](src/groovy.ohm)
 
 ---
 
@@ -180,7 +223,7 @@ Visit the Groovy project site: [Link](https://diegocuadros1.github.io/)
 
 ## Examples
 
-A few short samples below. Additional full-length written and audio examples are in the `docs` folder.
+A few short samples below. These examples in `.groovy` and `.mid` formats and more are present in the `examples` folder.
 
 ### Variables & Constants
 
@@ -200,10 +243,10 @@ note active = open
 <td>
 
 ```javascript
-let score_1 = 100;
-let maxScore_2 = 999;
-let name_3 = "Alice";
-let active_4 = true;
+let score_1 = 100
+const maxScore_2 = 999
+let name_3 = "Alice"
+let active_4 = true
 ```
 
 </td>
@@ -231,11 +274,11 @@ play x + y
 <td>
 
 ```javascript
-let x_1 = 4;
-let y_2 = x_1 ** 3;
-x_1++;
-x_1--;
-console.log(x_1 + y_2);
+let x_1 = 4
+let y_2 = x_1 ** 3
+x_1++
+x_1--
+console.log(x_1 + y_2)
 ```
 
 </td>
@@ -254,11 +297,11 @@ console.log(x_1 + y_2);
 ```groovy
 note x = 5
 
-cue x < 0 :
+cue x < 0:
   play "negative"
-alt x == 0 :
+alt x == 0:
   play "zero"
-drop :
+drop:
   play "positive"
 cadence
 ```
@@ -267,14 +310,14 @@ cadence
 <td>
 
 ```javascript
-let x_1 = 5;
+let x_1 = 5
 
 if (x_1 < 0) {
-  console.log("negative");
+  console.log("negative")
 } else if (x_1 === 0) {
-  console.log("zero");
+  console.log("zero")
 } else {
-  console.log("positive");
+  console.log("positive")
 }
 ```
 
@@ -293,7 +336,7 @@ if (x_1 < 0) {
 
 ```groovy
 note i = 0
-vamp i < 5 :
+vamp i < 5:
   play i
   i = i + 1
 cadence
@@ -303,10 +346,10 @@ cadence
 <td>
 
 ```javascript
-let i_1 = 0;
+let i_1 = 0
 while (i_1 < 5) {
-  console.log(i_1);
-  i_1 = i_1 + 1;
+  console.log(i_1)
+  i_1 = i_1 + 1
 }
 ```
 
@@ -324,7 +367,7 @@ while (i_1 < 5) {
 <td>
 
 ```groovy
-measure i from 1 to 10 :
+measure i from 1 to 10:
   play i
 cadence
 ```
@@ -334,7 +377,7 @@ cadence
 
 ```javascript
 for (let i_1 = 1; i_1 <= 10; i_1++) {
-  console.log(i_1);
+  console.log(i_1)
 }
 ```
 
@@ -353,7 +396,7 @@ for (let i_1 = 1; i_1 <= 10; i_1++) {
 
 ```groovy
 note beats = [1, 2, 3, 4]
-measure beat in beats :
+measure beat in beats:
   play beat
 cadence
 ```
@@ -362,9 +405,9 @@ cadence
 <td>
 
 ```javascript
-let beats_1 = [1, 2, 3, 4];
+let beats_1 = [1, 2, 3, 4]
 for (let beat_2 of beats_1) {
-  console.log(beat_2);
+  console.log(beat_2)
 }
 ```
 
@@ -382,7 +425,7 @@ for (let beat_2 of beats_1) {
 <td>
 
 ```groovy
-encore 4 :
+encore 4:
   play "drop the beat"
 cadence
 ```
@@ -392,7 +435,7 @@ cadence
 
 ```javascript
 for (let i_1 = 0; i_1 < 4; i_1++) {
-  console.log("drop the beat");
+  console.log("drop the beat")
 }
 ```
 
@@ -410,11 +453,11 @@ for (let i_1 = 0; i_1 < 4; i_1++) {
 <td>
 
 ```groovy
-compose add(x : level, y : level) -> level :
+compose add(x: level, y: level) -> level:
   fin x + y
 cadence
 
-compose greet(name : lyric) :
+compose greet(name: lyric):
   play name
 cadence
 
@@ -427,13 +470,13 @@ greet("Groovy")
 
 ```javascript
 function add_1(x_2, y_3) {
-  return x_2 + y_3;
+  return x_2 + y_3
 }
 function greet_4(name_5) {
-  console.log(name_5);
+  console.log(name_5)
 }
-console.log(add_1(3, 7));
-greet_4("Groovy");
+console.log(add_1(3, 7))
+greet_4("Groovy")
 ```
 
 </td>
@@ -450,12 +493,12 @@ greet_4("Groovy");
 <td>
 
 ```groovy
-chord Point :
-  x : level
-  y : level
+chord Point:
+  x: level
+  y: level
 cadence
 
-compose makePoint(a : level, b : level) -> Point :
+compose makePoint(a: level, b: level) -> Point:
   fin Point(a, b)
 cadence
 
@@ -469,15 +512,15 @@ play p.x
 ```javascript
 class Point {
   constructor(x, y) {
-    this.x = x;
-    this.y = y;
+    this.x = x
+    this.y = y
   }
 }
 function makePoint_1(a_2, b_3) {
-  return new Point(a_2, b_3);
+  return new Point(a_2, b_3)
 }
-let p_4 = makePoint_1(3, 4);
-console.log(p_4.x);
+let p_4 = makePoint_1(3, 4)
+console.log(p_4.x)
 ```
 
 </td>
@@ -503,9 +546,9 @@ play result
 <td>
 
 ```javascript
-let maybeScore_1 = 42;
-let result_2 = maybeScore_1 ?? 0;
-console.log(result_2);
+let maybeScore_1 = 42
+let result_2 = maybeScore_1 ?? 0
+console.log(result_2)
 ```
 
 </td>
@@ -524,7 +567,7 @@ console.log(result_2);
 ```groovy
 note notes = [60, 62, 64, 65, 67]
 play notes[0]
-measure n in notes :
+measure n in notes:
   play n
 cadence
 ```
@@ -533,10 +576,10 @@ cadence
 <td>
 
 ```javascript
-let notes_1 = [60, 62, 64, 65, 67];
-console.log(notes_1[0]);
+let notes_1 = [60, 62, 64, 65, 67]
+console.log(notes_1[0])
 for (let n_2 of notes_1) {
-  console.log(n_2);
+  console.log(n_2)
 }
 ```
 
@@ -555,8 +598,8 @@ for (let n_2 of notes_1) {
 
 ```groovy
 note i = 0
-vamp i < 100 :
-  cue i == 5 :
+vamp i < 100:
+  cue i == 5:
     cut
   cadence
   i = i + 1
@@ -567,12 +610,12 @@ cadence
 <td>
 
 ```javascript
-let i_1 = 0;
+let i_1 = 0
 while (i_1 < 100) {
   if (i_1 === 5) {
-    break;
+    break
   }
-  i_1 = i_1 + 1;
+  i_1 = i_1 + 1
 }
 ```
 

@@ -42,19 +42,23 @@ const optimizers = {
     p.body = optimizeBlock(p.body)
     return p
   },
+
   VariableDeclaration(d) {
     d.variable = optimize(d.variable)
     d.initializer = optimize(d.initializer)
     return d
   },
+
   StructDeclaration(d) {
     return d
   },
+
   FunctionDeclaration(d) {
     d.function = optimize(d.function)
     d.body = optimizeBlock(d.body)
     return d
   },
+
   FunctionObject(f) {
     return f
   },
@@ -67,20 +71,25 @@ const optimizers = {
     if (s.source.name && s.target.name && s.source.name === s.target.name) return []
     return s
   },
+
   BumpStatement(s) {
     s.variable = optimize(s.variable)
     return s
   },
+
   CutStatement(s) {
     return s
   },
+
   ReturnStatement(s) {
     s.expression = optimize(s.expression)
     return s
   },
+
   ShortReturnStatement(s) {
     return s
   },
+
   PlayStatement(s) {
     s.argument = optimize(s.argument)
     return s
@@ -106,6 +115,7 @@ const optimizers = {
     }
     return s
   },
+
   VampStatement(s) {
     s.test = optimize(s.test)
     if (s.test === false) return []
@@ -121,6 +131,7 @@ const optimizers = {
     }
     return s
   },
+
   EncoreStatement(s) {
     s.count = optimize(s.count)
     if (s.count === 0) return []
@@ -137,6 +148,7 @@ const optimizers = {
     }
     return s
   },
+
   MeasureRangeStatement(s) {
     s.iterator = optimize(s.iterator)
     s.low = optimize(s.low)
@@ -147,6 +159,7 @@ const optimizers = {
       return []
     return s
   },
+
   MeasureInStatement(s) {
     s.iterator = optimize(s.iterator)
     s.collection = optimize(s.collection)
@@ -168,11 +181,13 @@ const optimizers = {
     }
     return e
   },
+
   UnwrapElseExpression(e) {
     e.optional = optimize(e.optional)
     e.alternate = optimize(e.alternate)
     return e
   },
+
   BinaryExpression(e) {
     e.left = optimize(e.left)
     e.right = optimize(e.right)
@@ -238,6 +253,7 @@ const optimizers = {
 
     return e
   },
+
   UnaryExpression(e) {
     e.argument = optimize(e.argument)
     if (e.argument.constructor === Number && e.operator === "-") return -e.argument
@@ -265,30 +281,34 @@ const optimizers = {
 
     return e
   },
+
   ArrayLiteral(e) {
     e.elements = e.elements.map(optimize)
     return e
   },
+
   SubscriptExpression(e) {
     e.array = optimize(e.array)
     e.index = optimize(e.index)
     return e
   },
+
   MemberExpression(e) {
     e.object = optimize(e.object)
     return e
   },
+
   FunctionCall(c) {
     c.callee = optimize(c.callee)
     c.arguments = c.arguments.map(optimize)
 
-    if (c.callee === core.standardLibrary.sqrt && c.arguments[0].constructor === Number) {
+    if (c.callee === core.standardLibrary.sqrt && typeof c.arguments[0] === "number") {
       return Math.sqrt(c.arguments[0])
     }
     if (
       c.callee === core.standardLibrary.hypot &&
-      c.arguments[0].constructor === Number &&
-      c.arguments[1].constructor === Number
+      typeof c.arguments[0] === "number" &&
+      typeof c.arguments[1] === "number"
     ) {
       return Math.hypot(c.arguments[0], c.arguments[1])
     }

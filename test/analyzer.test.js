@@ -193,11 +193,6 @@ const invalidArraysAndOptionals = [
 
 const invalidFunctionsAndStructs = [
   ["call non-function", "note x = 1 play x()", /Attempted to call a non-composition/],
-  [
-    "struct instantiation attempt",
-    "chord Box : x : level cadence note b = Box(1)",
-    /Attempted to call a non-composition/,
-  ],
   ["wrong number of arguments", "compose f() : cadence play f(1)", /Expected 0 inputs/],
   [
     "argument type mismatch",
@@ -235,7 +230,7 @@ describe("The Analyzer", () => {
       describe(category, () => {
         for (const [scenario, source] of fixtures) {
           it(`recognizes ${scenario}`, () => {
-            assert.ok(analyze(parse(source, [])))
+            assert.ok(analyze(parse(source)))
           })
         }
       })
@@ -255,7 +250,7 @@ describe("The Analyzer", () => {
       describe(category, () => {
         for (const [scenario, source, errorMessagePattern] of fixtures) {
           it(`throws on ${scenario}`, () => {
-            assert.throws(() => analyze(parse(source, [])), errorMessagePattern)
+            assert.throws(() => analyze(parse(source)), errorMessagePattern)
           })
         }
       })
@@ -265,9 +260,37 @@ describe("The Analyzer", () => {
   describe("AST Validation", () => {
     it("produces the expected AST for a trivial program", () => {
       assert.deepEqual(
-        analyze(parse("note x = 1", [])),
+        analyze(parse("note x = 1")),
         core.program([core.varDecl(core.variable("x", false, "level"), 1)]),
       )
+    })
+  })
+
+  describe("Error Timestamps", () => {
+    it("injects MIDI time into semantic error messages if a valid sourceMap is provided", () => {
+      const source = "key x = 1 x = 2"
+      const sourceMap = [
+        { index: 0, time: "0.00" },
+        { index: 10, time: "3.14" },
+      ]
+
+      assert.throws(() => analyze(parse(source), sourceMap), /\[Time: 3\.14s\]/)
+    })
+
+    it("does not inject MIDI time if the closest time is 'N/A'", () => {
+      const source = "key x = 1 x = 2"
+      const sourceMap = [
+        { index: 0, time: "0.00" },
+        { index: 10, time: "N/A" },
+      ]
+
+      try {
+        analyze(parse(source), sourceMap)
+        assert.fail("Should have thrown a semantic error")
+      } catch (e) {
+        assert.ok(!e.message.includes("[Time:"))
+        assert.match(e.message, /Cannot overwrite immutable 'key'/)
+      }
     })
   })
 })

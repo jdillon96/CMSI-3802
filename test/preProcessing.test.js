@@ -1,6 +1,6 @@
 import { describe, it, after } from "node:test"
 import assert from "node:assert/strict"
-import fs from "fs"
+import fs from "node:fs"
 import MidiWriter from "midi-writer-js"
 import { processMidi } from "../src/preProcessing.js"
 import { generateMidi } from "../src/textToMidi.js"
