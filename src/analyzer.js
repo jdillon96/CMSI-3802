@@ -183,9 +183,11 @@ export default function translate(match) {
     Statement_break(_cut) {
       return core.cutStmt()
     },
+
     Statement_return(_fin, expression) {
       return core.returnStmt(expression.translate())
     },
+
     Statement_shortreturn(_fin) {
       return core.shortReturnStmt()
     },

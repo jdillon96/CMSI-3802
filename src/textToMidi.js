@@ -4,8 +4,8 @@
 // Uses a greedy tokenizer to match strings to specific MIDI channels,
 // with a base-128 mathematical fallback for arbitrary Unicode characters.
 
-import fs from "fs"
-import path from "path"
+import fs from "node:fs"
+import path from "node:path"
 import MidiWriter from "midi-writer-js"
 import { REVERSE_MAP } from "./preProcessing.js"
 
@@ -75,7 +75,7 @@ export function generateMidi(sourceCode, outputPath) {
 // -------- CLI --------
 
 /* c8 ignore start */
-const isCLI = process.argv[1] && process.argv[1].endsWith("textToMidi.js")
+const isCLI = process.argv[1]?.endsWith("textToMidi.js")
 
 if (isCLI) {
   if (process.argv.length !== 3) {

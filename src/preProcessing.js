@@ -113,16 +113,18 @@ export function processMidi(filePath) {
     let charToAppend = ""
 
     switch (note.channel) {
-      case 1:
+      case 1: {
         const keywords = GROOVY_CHANNELS[1]
         charToAppend = keywords[note.pitch % keywords.length]
         break
+      }
       case 2:
       case 3:
-      case 4:
+      case 4: {
         const chars = GROOVY_CHANNELS[note.channel]
         charToAppend = chars[note.pitch % chars.length]
         break
+      }
       case 5:
         if (note.pitch % 3 === 0) charToAppend = " "
         else if (note.pitch % 3 === 1) charToAppend = "\t"
